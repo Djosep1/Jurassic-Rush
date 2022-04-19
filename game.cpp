@@ -60,8 +60,8 @@ public:
 			unlink(newfile);
 		}
 	}
-} img("/pics/background.png"),
-  sprite("/home/stu/djosep/4490/8/bees.png");
+} img("pics/background.png"),
+  sprite("pics/bees.png");
 
 struct Vector {
     float x, y, z;
