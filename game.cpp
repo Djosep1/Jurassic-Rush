@@ -60,7 +60,7 @@ public:
 			unlink(newfile);
 		}
 	}
-} img("/home/stu/djosep/4490/8/night.ppm"),
+} img("./background.png"),
   sprite("/home/stu/djosep/4490/8/bees.png");
 
 struct Vector {
