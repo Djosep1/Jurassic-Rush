@@ -1,0 +1,15 @@
+# Ignore MAC files
+
+.DS_STORE
+
+# Ignore Output Files
+*.o
+game
+
+# Ignore Log Files
+x.x
+
+# Ignore Swap Files
+*.swp
+*.swo
+

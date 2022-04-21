@@ -1,5 +1,7 @@
 /* * * * * * * * * * * * * * * * * * 
  * Name:  Daniel Josep             *
+ * Name:  Alyssa Diaz              *
+ * Name:  Carlos Hernandez         *
  * Class: 4490 - Game Development  *
  * Date:  04/11/22                 *
  * Game Name: Fossil Frenzy		   *
@@ -60,13 +62,8 @@ public:
 			unlink(newfile);
 		}
 	}
-<<<<<<< HEAD
-} img("./background.png"),
-  sprite("/home/stu/djosep/4490/8/bees.png");
-=======
 } img("pics/background.png"),
   sprite("pics/bees.png");
->>>>>>> 9839d9f2625175a084298779b2002ce757b39838
 
 struct Vector {
     float x, y, z;
