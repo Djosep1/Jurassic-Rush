@@ -69,8 +69,6 @@ struct Vector {
     float x, y, z;
 };
 
-//A Game Object
-
 typedef double Flt;
 class Bee {
 public:
@@ -91,6 +89,14 @@ public:
 		w = (float)x * 0.05;
 		h = w;
 	}
+};
+
+enum {
+	STATE_INTRO,
+	STATE_INSTRUCTIONS,
+	STATE_SHOW_OBJECTIVES,
+	STATE_PLAY,
+	STATE_GAME_OVER
 };
 
 class Global {
@@ -116,6 +122,7 @@ public:
 		inside = 0;
 		gravity = 20.0;
 		frameno = 0;
+		state = STATE_INTRO;
 	};
 } g;
 
@@ -471,12 +478,24 @@ void physics()
 }
 
 void render()
-{
-	//static float w = 20.0f;
-	//static float dir = 25.0f;
-	//static float pos[2] = {0.0f+w, g.yres/2.0f};	
-	
+{	
     glClear(GL_COLOR_BUFFER_BIT);
+	Rect r;
+
+	if (g.state == STATE_INTRO) {
+
+		return;
+	}
+
+	if (g.state == STATE_PLAY) {
+		
+		return;
+	}
+
+	if (g.state == STATE_GAMEOVER) {
+		
+		return;
+	}
 
 	//Initialize Texture Map
 	glColor3ub(255, 255, 255); //Make it brighter
@@ -490,7 +509,6 @@ void render()
 	glEnd();
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    Rect r;
     r.bot = g.yres - 20;
     r.left = 10;
     r.center = 0;
