@@ -105,6 +105,11 @@ public:
     float pos[2];
     float w;
 	float dir;
+    int state;
+	int score;
+	int playtime;
+	int countdown;
+	int starttime;
     int inside;
 	unsigned int texid;
 	unsigned int spriteid;
@@ -118,6 +123,7 @@ public:
 		w = 20.0f;
 		pos[0] = 0.0f + w;	
 		pos[1] = yres/2.0f;	
+		score = 0;
 		dir = 25.0f;
 		inside = 0;
 		gravity = 20.0;
@@ -192,6 +198,13 @@ int main()
 			x11.check_resize(&e);
 			x11.check_mouse(&e);
 			done = x11.check_keys(&e);
+		}
+		if (g.state == STATE_PLAY) {
+			// Check Countdown Timer
+			g.countdown = time(NULL) - g.starttime;
+			if (g.countdown > g.playtime) {
+				g.state = STATE_GAME_OVER;
+			}
 		}
 		//You can call physics a number of times to smooth
 		//out the process
@@ -314,16 +327,30 @@ void X11_wrapper::check_mouse(XEvent *e)
 			//Left button was pressed.
 			int y = g.yres - e->xbutton.y;
             int x = e->xbutton.x;
-            if (x >= g.pos[0] - g.w && x <= g.pos[0] + g.w) {
-                if (y >= g.pos[1] - g.w && y <= g.pos[1] + g.w) {
-                    g.inside++;
-                    printf("Hits: %i\n", g.inside);
-                }
-            }       
+			if (g.state == STATE_INTRO) {
+
+			}
+			if (g.state == STATE_PLAY) {
+				if (x >= g.pos[0] - g.w && x <= g.pos[0] + g.w) {
+					if (y >= g.pos[1] - g.w && y <= g.pos[1] + g.w) {
+						g.score += 1;
+
+						//Check for Game Over
+						if (g.score == 5) {
+							g.state = STATE_GAME_OVER;
+						}
+                	}
+            	}
+			}       
 			return;
 		}
 		if (e->xbutton.button==3) {
 			//Right button was pressed.
+			if (g.state == STATE_GAME_OVER) {
+				//restart_game();
+				g.score = 0;
+				g.state = STATE_INTRO;
+			}
 			return;
 		}
 	}
@@ -344,6 +371,13 @@ int X11_wrapper::check_keys(XEvent *e)
 	int key = XLookupKeysym(&e->xkey, 0);
 	if (e->type == KeyPress) {
 		switch (key) {
+			case XK_s:
+				//Key s was pressed
+				if (g.state == STATE_INTRO) {
+					g.state = STATE_PLAY;
+					g.starttime = time(NULL);
+					g.playtime = 10;
+				}
 			case XK_1:
 				//Key 1 was pressed
 				break;
@@ -483,78 +517,88 @@ void render()
 	Rect r;
 
 	if (g.state == STATE_INTRO) {
-
+		// Show the Intro screen
+		r.bot = g.yres / 2;
+		r.left = g.xres / 2;
+		r.center = 1;
+		ggprint8b(&r, 20, 0x00ffffff, "Welcome to Fossil Frenzy!");
+		ggprint8b(&r, 0, 0x00ff0000, "Press s to start");
 		return;
 	}
 
 	if (g.state == STATE_PLAY) {
+		// Show the Play screen
+		r.bot = g.yres - 20;
+		r.left = 10;
+		r.center = 0;
+		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
+		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);		
+			//Initialize Texture Map
+		glColor3ub(255, 255, 255); //Make it brighter
+		//glColor3ub(80, 80, 160); //Make it darker
+		glBindTexture(GL_TEXTURE_2D, g.texid);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 1); glVertex2i(0,      0);
+			glTexCoord2f(0, 0); glVertex2i(0,      g.yres);
+			glTexCoord2f(1, 0); glVertex2i(g.xres, g.yres);
+			glTexCoord2f(1, 1); glVertex2i(g.xres, 0);
+		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		// Bee
+		glPushMatrix();
+		glTranslatef(g.bees[0].pos[0], g.bees[0].pos[1], 0.0f);
+
+		//Set Alpha Test
+		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
+		glEnable(GL_ALPHA_TEST);
+
+		//Transparent if alpha value is greater than 0.0
+		glAlphaFunc(GL_GREATER, 0.0f);
 		
+		//Set 4-channels of color intensity
+		glColor4ub(255, 255, 255, 255);
+
+		glBindTexture(GL_TEXTURE_2D, g.spriteid);
+
+		//Make texture coordinates based on frame number
+		float tx1 = 0.0f + (float)((g.frameno-1) % 5) * 0.2f;
+		float tx2 = tx1 + 0.2f;
+		float ty1 = 0.0f + (float)((g.frameno-1) / 5) *0.2f;
+		float ty2 = ty1 + 0.2;
+
+		//Change x-coords so that the bee flips when he turns
+		if(g.bees[0].vel[0] > 0.0) {
+			float tmp = tx1;
+			tx1 = tx2;
+			tx2 = tmp;
+		}
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(tx1, ty2); glVertex2f(-g.bees[0].w, -g.bees[0].h);
+			glTexCoord2f(tx1, ty1); glVertex2f(-g.bees[0].w,  g.bees[0].h);
+			glTexCoord2f(tx2, ty1); glVertex2f( g.bees[0].w,  g.bees[0].h);
+			glTexCoord2f(tx2, ty2); glVertex2f( g.bees[0].w, -g.bees[0].h);
+		glEnd();
+
+		//Turn off Alpha Test
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_ALPHA_TEST);
+		glPopMatrix();
+		return;
+
+	}
+
+	if (g.state == STATE_GAME_OVER) {
+		// Show the Game Over screen
+		r.bot = g.yres / 2;
+		r.left = g.xres / 2;
+		r.center = 1;
+		ggprint8b(&r, 20, 0x00ffffff, "GAME OVER");
+		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
+		ggprint8b(&r, 0, 0x00fff000, "Right-click to play again");		
 		return;
 	}
-
-	if (g.state == STATE_GAMEOVER) {
-		
-		return;
-	}
-
-	//Initialize Texture Map
-	glColor3ub(255, 255, 255); //Make it brighter
-	//glColor3ub(80, 80, 160); //Make it darker
-	glBindTexture(GL_TEXTURE_2D, g.texid);
-	glBegin(GL_QUADS);
-		glTexCoord2f(0, 1); glVertex2i(0,      0);
-		glTexCoord2f(0, 0); glVertex2i(0,      g.yres);
-		glTexCoord2f(1, 0); glVertex2i(g.xres, g.yres);
-		glTexCoord2f(1, 1); glVertex2i(g.xres, 0);
-	glEnd();
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    r.bot = g.yres - 20;
-    r.left = 10;
-    r.center = 0;
-    int score = 25;
-    ggprint8b(&r, 0, 0x00ffffff, "Daniel: %i", score);
-
-	// Bee
-	glPushMatrix();
-	glTranslatef(g.bees[0].pos[0], g.bees[0].pos[1], 0.0f);
-
-	//Set Alpha Test
-	//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
-	glEnable(GL_ALPHA_TEST);
-
-	//Transparent if alpha value is greater than 0.0
-	glAlphaFunc(GL_GREATER, 0.0f);
-	
-	//Set 4-channels of color intensity
-	glColor4ub(255, 255, 255, 255);
-
-	glBindTexture(GL_TEXTURE_2D, g.spriteid);
-
-	//Make texture coordinates based on frame number
-	float tx1 = 0.0f + (float)((g.frameno-1) % 5) * 0.2f;
-	float tx2 = tx1 + 0.2f;
-	float ty1 = 0.0f + (float)((g.frameno-1) / 5) *0.2f;
-	float ty2 = ty1 + 0.2;
-
-	//Change x-coords so that the bee flips when he turns
-	if(g.bees[0].vel[0] > 0.0) {
-		float tmp = tx1;
-		tx1 = tx2;
-		tx2 = tmp;
-	}
-
-	glBegin(GL_QUADS);
-		glTexCoord2f(tx1, ty2); glVertex2f(-g.bees[0].w, -g.bees[0].h);
-		glTexCoord2f(tx1, ty1); glVertex2f(-g.bees[0].w,  g.bees[0].h);
-		glTexCoord2f(tx2, ty1); glVertex2f( g.bees[0].w,  g.bees[0].h);
-		glTexCoord2f(tx2, ty2); glVertex2f( g.bees[0].w, -g.bees[0].h);
-	glEnd();
-
-	//Turn off Alpha Test
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glDisable(GL_ALPHA_TEST);
-	glPopMatrix();
 }
 
 
