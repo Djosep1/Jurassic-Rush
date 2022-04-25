@@ -105,11 +105,6 @@ public:
     float pos[2];
     float w;
 	float dir;
-    int state;
-	int score;
-	int playtime;
-	int countdown;
-	int starttime;
     int inside;
 	unsigned int texid;
 	unsigned int spriteid;
@@ -123,13 +118,24 @@ public:
 		w = 20.0f;
 		pos[0] = 0.0f + w;	
 		pos[1] = yres/2.0f;	
-		score = 0;
 		dir = 25.0f;
 		inside = 0;
 		gravity = 20.0;
 		frameno = 0;
-		state = STATE_INTRO;
 	};
+} gl;
+
+class Game {
+public:
+	int state;
+	int score;
+	int playtime;
+	int countdown;
+	int starttime;
+	Game() {
+		state = STATE_INTRO;
+		score = 0;
+	}
 } g;
 
 class X11_wrapper {
@@ -171,10 +177,10 @@ void *spriteThread(void *arg)
 		diff = timeDiff(&start, &end);
 		if (diff >= 0.05) {
 			//Enough time has passed
-			++g.frameno;
-			if (g.frameno > 20) {
+			++gl.frameno;
+			if (gl.frameno > 20) {
 				//If frame number is 22 go back to 0
-				g.frameno = 1;
+				gl.frameno = 1;
 			}
 			timeCopy(&start, &end);
 		}
@@ -226,7 +232,7 @@ X11_wrapper::~X11_wrapper()
 X11_wrapper::X11_wrapper()
 {
 	GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
-	int w = g.xres, h = g.yres;
+	int w = gl.xres, h = gl.yres;
 	dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
 		cout << "\n\tcannot connect to X server\n" << endl;
@@ -257,7 +263,7 @@ void X11_wrapper::set_title()
 {
 	//Set the window title bar.
 	XMapWindow(dpy, win);
-	XStoreName(dpy, win, "PPM Image");
+	XStoreName(dpy, win, "Fossil Frenzy");
 }
 
 bool X11_wrapper::getXPending()
@@ -282,14 +288,14 @@ void X11_wrapper::swapBuffers()
 void X11_wrapper::reshape_window(int width, int height)
 {
 	//window has been resized.
-	g.xres = width;
-	g.yres = height;
+	gl.xres = width;
+	gl.yres = height;
 	//
 	glViewport(0, 0, (GLint)width, (GLint)height);
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-	glOrtho(0, g.xres, 0, g.yres, -1, 1);
-	g.bees[0].set_dimensions(g.xres, g.yres);
+	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+	gl.bees[0].set_dimensions(gl.xres, gl.yres);
 }
 
 void X11_wrapper::check_resize(XEvent *e)
@@ -299,7 +305,7 @@ void X11_wrapper::check_resize(XEvent *e)
 	if (e->type != ConfigureNotify)
 		return;
 	XConfigureEvent xce = e->xconfigure;
-	if (xce.width != g.xres || xce.height != g.yres) {
+	if (xce.width != gl.xres || xce.height != gl.yres) {
 		//Window size did change.
 		reshape_window(xce.width, xce.height);
 	}
@@ -325,14 +331,14 @@ void X11_wrapper::check_mouse(XEvent *e)
 	if (e->type == ButtonPress) {
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
-			int y = g.yres - e->xbutton.y;
+			int y = gl.yres - e->xbutton.y;
             int x = e->xbutton.x;
 			if (g.state == STATE_INTRO) {
 
 			}
 			if (g.state == STATE_PLAY) {
-				if (x >= g.pos[0] - g.w && x <= g.pos[0] + g.w) {
-					if (y >= g.pos[1] - g.w && y <= g.pos[1] + g.w) {
+				if (x >= gl.pos[0] - gl.w && x <= gl.pos[0] + gl.w) {
+					if (y >= gl.pos[1] - gl.w && y <= gl.pos[1] + gl.w) {
 						g.score += 1;
 
 						//Check for Game Over
@@ -392,11 +398,11 @@ int X11_wrapper::check_keys(XEvent *e)
 void init_opengl(void)
 {
 	//OpenGL initialization
-	glViewport(0, 0, g.xres, g.yres);
+	glViewport(0, 0, gl.xres, gl.yres);
 	//Initialize matrices
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	//Set 2D mode (no perspective)
-	glOrtho(0, g.xres, 0, g.yres, -1, 1);
+	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	//Set the screen background color
 	glClearColor(0.1, 0.1, 0.1, 1.0);
@@ -405,8 +411,8 @@ void init_opengl(void)
     initialize_fonts();
 
 	//Background Image
-	glGenTextures(1, &g.texid);
-	glBindTexture(GL_TEXTURE_2D, g.texid);
+	glGenTextures(1, &gl.texid);
+	glBindTexture(GL_TEXTURE_2D, gl.texid);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, img.width, img.height, 0,
@@ -446,8 +452,8 @@ void init_opengl(void)
 		}
 	}
 	//#endif
-	glGenTextures(1, &g.spriteid);
-	glBindTexture(GL_TEXTURE_2D, g.spriteid);
+	glGenTextures(1, &gl.spriteid);
+	glBindTexture(GL_TEXTURE_2D, gl.spriteid);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite.width, sprite.height, 0,
@@ -455,43 +461,43 @@ void init_opengl(void)
 	delete [] data2;
 
 	//Set the dimensions of the Bee
-	g.bees[0].set_dimensions(g.xres, g.yres);
+	gl.bees[0].set_dimensions(gl.xres, gl.yres);
 }
 
 void physics()
 {
 	// Movement of the Bee
-	g.bees[0].pos[0] += g.bees[0].vel[0];
-	g.bees[0].pos[1] += g.bees[0].vel[1];
+	gl.bees[0].pos[0] += gl.bees[0].vel[0];
+	gl.bees[0].pos[1] += gl.bees[0].vel[1];
 
     // Check the Bounderies
-	if (g.bees[0].pos[0] >= g.xres) {
-		g.bees[0].pos[0] = g.xres;
-		g.bees[0].vel[0] = 0.0;
+	if (gl.bees[0].pos[0] >= gl.xres) {
+		gl.bees[0].pos[0] = gl.xres;
+		gl.bees[0].vel[0] = 0.0;
 	}
-	if (g.bees[0].pos[0] <= 0) {
-		g.bees[0].pos[0] = 0;
-		g.bees[0].vel[0] = 0.0;
+	if (gl.bees[0].pos[0] <= 0) {
+		gl.bees[0].pos[0] = 0;
+		gl.bees[0].vel[0] = 0.0;
 	}
-	if (g.bees[0].pos[1] >= g.yres) {
-		g.bees[0].pos[1] = g.yres;
-		g.bees[0].vel[1] = 0.0;
+	if (gl.bees[0].pos[1] >= gl.yres) {
+		gl.bees[0].pos[1] = gl.yres;
+		gl.bees[0].vel[1] = 0.0;
 	}
-	if (g.bees[0].pos[1] <= 0) {
-		g.bees[0].pos[1] = 0;
-		g.bees[0].vel[1] = 0.0;
+	if (gl.bees[0].pos[1] <= 0) {
+		gl.bees[0].pos[1] = 0;
+		gl.bees[0].vel[1] = 0.0;
 	}
 	
 	//Move Bee towards flower
-	Flt cx = g.xres/2.0;
-	Flt cy = g.yres/2.0;
+	Flt cx = gl.xres/2.0;
+	Flt cy = gl.yres/2.0;
 
 	//Points toward the second flower on flower.jpg
-	//cx = g.xres * (218.0 / 300.0);
-	//dx = g.yres * (86.0 / 169.0);
+	//cx = gl.xres * (218.0 / 300.0);
+	//dx = gl.yres * (86.0 / 169.0);
 
-	Flt dx = cx - g.bees[0].pos[0];
-	Flt dy = cy - g.bees[0].pos[1];
+	Flt dx = cx - gl.bees[0].pos[0];
+	Flt dy = cy - gl.bees[0].pos[1];
 	Flt distance = (dx*dx + dy*dy);
 
 	//If it goes near the center, it will
@@ -502,13 +508,13 @@ void physics()
 
 	//Change in velocity based on a force (gravity)
 	//Multiply by an integer to make the Bee go faster
-	g.bees[0].vel[0] += (dx / distance) * g.gravity;
-	g.bees[0].vel[1] += (dy / distance) * g.gravity;
+	gl.bees[0].vel[0] += (dx / distance) * gl.gravity;
+	gl.bees[0].vel[1] += (dy / distance) * gl.gravity;
 
 	//Creates random interferences
 	//No repeat pattern
-	g.bees[0].vel[0] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
-	g.bees[0].vel[1] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
+	gl.bees[0].vel[0] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
+	gl.bees[0].vel[1] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
 }
 
 void render()
@@ -518,8 +524,8 @@ void render()
 
 	if (g.state == STATE_INTRO) {
 		// Show the Intro screen
-		r.bot = g.yres / 2;
-		r.left = g.xres / 2;
+		r.bot = gl.yres / 2;
+		r.left = gl.xres / 2;
 		r.center = 1;
 		ggprint8b(&r, 20, 0x00ffffff, "Welcome to Fossil Frenzy!");
 		ggprint8b(&r, 0, 0x00ff0000, "Press s to start");
@@ -528,7 +534,7 @@ void render()
 
 	if (g.state == STATE_PLAY) {
 		// Show the Play screen
-		r.bot = g.yres - 20;
+		r.bot = gl.yres - 20;
 		r.left = 10;
 		r.center = 0;
 		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
@@ -536,18 +542,18 @@ void render()
 			//Initialize Texture Map
 		glColor3ub(255, 255, 255); //Make it brighter
 		//glColor3ub(80, 80, 160); //Make it darker
-		glBindTexture(GL_TEXTURE_2D, g.texid);
+		glBindTexture(GL_TEXTURE_2D, gl.texid);
 		glBegin(GL_QUADS);
 			glTexCoord2f(0, 1); glVertex2i(0,      0);
-			glTexCoord2f(0, 0); glVertex2i(0,      g.yres);
-			glTexCoord2f(1, 0); glVertex2i(g.xres, g.yres);
-			glTexCoord2f(1, 1); glVertex2i(g.xres, 0);
+			glTexCoord2f(0, 0); glVertex2i(0,      gl.yres);
+			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
+			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// Bee
 		glPushMatrix();
-		glTranslatef(g.bees[0].pos[0], g.bees[0].pos[1], 0.0f);
+		glTranslatef(gl.bees[0].pos[0], gl.bees[0].pos[1], 0.0f);
 
 		//Set Alpha Test
 		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
@@ -559,26 +565,26 @@ void render()
 		//Set 4-channels of color intensity
 		glColor4ub(255, 255, 255, 255);
 
-		glBindTexture(GL_TEXTURE_2D, g.spriteid);
+		glBindTexture(GL_TEXTURE_2D, gl.spriteid);
 
 		//Make texture coordinates based on frame number
-		float tx1 = 0.0f + (float)((g.frameno-1) % 5) * 0.2f;
+		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f;
 		float tx2 = tx1 + 0.2f;
-		float ty1 = 0.0f + (float)((g.frameno-1) / 5) *0.2f;
+		float ty1 = 0.0f + (float)((gl.frameno-1) / 5) *0.2f;
 		float ty2 = ty1 + 0.2;
 
 		//Change x-coords so that the bee flips when he turns
-		if(g.bees[0].vel[0] > 0.0) {
+		if(gl.bees[0].vel[0] > 0.0) {
 			float tmp = tx1;
 			tx1 = tx2;
 			tx2 = tmp;
 		}
 
 		glBegin(GL_QUADS);
-			glTexCoord2f(tx1, ty2); glVertex2f(-g.bees[0].w, -g.bees[0].h);
-			glTexCoord2f(tx1, ty1); glVertex2f(-g.bees[0].w,  g.bees[0].h);
-			glTexCoord2f(tx2, ty1); glVertex2f( g.bees[0].w,  g.bees[0].h);
-			glTexCoord2f(tx2, ty2); glVertex2f( g.bees[0].w, -g.bees[0].h);
+			glTexCoord2f(tx1, ty2); glVertex2f(-gl.bees[0].w, -gl.bees[0].h);
+			glTexCoord2f(tx1, ty1); glVertex2f(-gl.bees[0].w,  gl.bees[0].h);
+			glTexCoord2f(tx2, ty1); glVertex2f( gl.bees[0].w,  gl.bees[0].h);
+			glTexCoord2f(tx2, ty2); glVertex2f( gl.bees[0].w, -gl.bees[0].h);
 		glEnd();
 
 		//Turn off Alpha Test
@@ -591,8 +597,8 @@ void render()
 
 	if (g.state == STATE_GAME_OVER) {
 		// Show the Game Over screen
-		r.bot = g.yres / 2;
-		r.left = g.xres / 2;
+		r.bot = gl.yres / 2;
+		r.left = gl.xres / 2;
 		r.center = 1;
 		ggprint8b(&r, 20, 0x00ffffff, "GAME OVER");
 		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
