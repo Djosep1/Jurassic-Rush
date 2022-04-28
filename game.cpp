@@ -63,6 +63,7 @@ public:
 		}
 	}
 } img("pics/background.png"),
+  ps("pics/Player_Screen.png"),
   sprite("pics/bees.png");
 
 struct Vector {
@@ -94,6 +95,7 @@ public:
 enum {
 	STATE_INTRO,
 	STATE_INSTRUCTIONS,
+	STATE_PLAYER_SELECT,
 	STATE_SHOW_OBJECTIVES,
 	STATE_PLAY,
 	STATE_GAME_OVER
@@ -108,6 +110,7 @@ public:
     int inside;
 	unsigned int texid;
 	unsigned int spriteid;
+	unsigned int psid;
 	Bee bees[2];
 	Flt gravity;
 	int frameno;
@@ -390,6 +393,11 @@ int X11_wrapper::check_keys(XEvent *e)
 					g.state = STATE_INTRO;
 				}
 				break;
+			case XK_p:
+				if (g.state == STATE_INTRO) {
+					g.state = STATE_PLAYER_SELECT;
+				}
+				break;
 			case XK_1:
 				//Key 1 was pressed
 				break;
@@ -423,6 +431,14 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, img.width, img.height, 0,
 							GL_RGB, GL_UNSIGNED_BYTE, img.data);
+
+	//Player Screen Image
+	glGenTextures(1, &gl.psid);
+	glBindTexture(GL_TEXTURE_2D, gl.psid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, ps.width, ps.height, 0,
+							GL_RGB, GL_UNSIGNED_BYTE, ps.data);
 
 	unsigned char *data2 = new unsigned char[sprite.width*sprite.height*4];
 	for (int i = 0; i < sprite.height; i++) {
@@ -515,8 +531,24 @@ void render()
 		r.bot = gl.yres / 2;
 		r.left = gl.xres / 2;
 		r.center = 1;
-		ggprint8b(&r, 20, 0x00ffffff, "Welcome to Fossil Frenzy!");
-		ggprint8b(&r, 0, 0x00ff0000, "Press s to start");
+		ggprint8b(&r, 30, 0x00ffffff, "Welcome to Fossil Frenzy!");
+		ggprint8b(&r, 20, 0x00ff0000, "Press s to start");
+		ggprint8b(&r, 0, 0x00ff0000, "Press p to go to player screen");
+		return;
+	}
+
+	if (g.state == STATE_PLAYER_SELECT) {
+		// Show the Player Selection screen
+		glColor3ub(255, 255, 255); //Make it brighter
+
+		glBindTexture(GL_TEXTURE_2D, gl.psid);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 1); glVertex2i(0,      0);
+			glTexCoord2f(0, 0); glVertex2i(0,      gl.yres);
+			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
+			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
+		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
 		return;
 	}
 
