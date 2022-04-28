@@ -269,7 +269,7 @@ void X11_wrapper::set_title()
 {
 	//Set the window title bar.
 	XMapWindow(dpy, win);
-	XStoreName(dpy, win, "Fossil Frenzy");
+	XStoreName(dpy, win, "Jurassic Rush");
 }
 
 bool X11_wrapper::getXPending()
@@ -491,7 +491,7 @@ void physics()
 		gl.bees[0].pos[1] = 0;
 		gl.bees[0].vel[1] = 0.0;
 	}
-	
+
 	//Move Bee towards flower
 	Flt cx = gl.xres/2.0;
 	Flt cy = gl.yres/2.0;
@@ -613,6 +613,7 @@ void render()
 		glDisable(GL_ALPHA_TEST);
 		glPopMatrix();
 		return;
+
 	}
 
 	if (g.state == STATE_GAME_OVER) {
@@ -624,8 +625,10 @@ void render()
 		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
 		ggprint8b(&r, 0, 0x00fff000, "Press r to restart");		
 		return;
+		//End Game
 	}
 }
+
 
 
 
