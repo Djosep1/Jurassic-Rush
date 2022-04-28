@@ -64,7 +64,7 @@ public:
 	}
 } img("pics/background.png"),
   ps("pics/Player_Screen.png"),
-  sprite("pics/bees.png");
+  sprite("sprites/boy/run.png");
 
 struct Vector {
     float x, y, z;
@@ -80,14 +80,14 @@ public:
     bool alive_or_dead;
 	Flt mass;
 	Bee() {
-		w = h = 4.0;
+		w = h = 10.0;
 		pos[0] = 1.0;
 		pos[1] = 200.0;
 		vel[0] = 4.0;
 		vel[1] = 0.0;
 	}
 	void set_dimensions(int x, int y) {
-		w = (float)x * 0.05;
+		w = (float)x * 0.10;
 		h = w;
 	}
 };
@@ -115,13 +115,13 @@ public:
 	Flt gravity;
 	int frameno;
 	Global() {
-		xres = 400;
-		yres = 200;
+		xres = 1200;
+		yres = 720;
 		// Box
 		w = 20.0f;
 		pos[0] = 0.0f + w;	
 		pos[1] = yres/2.0f;	
-		dir = 25.0f;
+		dir = 5.0f;
 		inside = 0;
 		gravity = 20.0;
 		frameno = 0;
@@ -184,8 +184,8 @@ void *spriteThread(void *arg)
 		if (diff >= 0.05) {
 			//Enough time has passed
 			++gl.frameno;
-			if (gl.frameno > 20) {
-				//If frame number is 22 go back to 0
+			if (gl.frameno > 10) {
+				//If frame number is 20 go back to 1
 				gl.frameno = 1;
 			}
 			timeCopy(&start, &end);
@@ -197,8 +197,8 @@ void *spriteThread(void *arg)
 int main()
 {
 	//Start the thread
-	//pthread_t sThread;
-	//pthread_create(&sThread, NULL, spriteThread, NULL);
+	pthread_t sThread;
+	pthread_create(&sThread, NULL, spriteThread, NULL);
 
 	init_opengl();
 	//main game loop
@@ -210,13 +210,6 @@ int main()
 			x11.check_resize(&e);
 			x11.check_mouse(&e);
 			done = x11.check_keys(&e);
-		}
-		if (g.state == STATE_PLAY) {
-			// Check Countdown Timer
-			g.countdown = time(NULL) - g.starttime;
-			if (g.countdown > g.playtime) {
-				g.state = STATE_GAME_OVER;
-			}
 		}
 		//You can call physics a number of times to smooth
 		//out the process
@@ -491,7 +484,7 @@ void physics()
 		gl.bees[0].pos[1] = 0;
 		gl.bees[0].vel[1] = 0.0;
 	}
-
+	
 	//Move Bee towards flower
 	Flt cx = gl.xres/2.0;
 	Flt cy = gl.yres/2.0;
@@ -512,8 +505,8 @@ void physics()
 
 	//Change in velocity based on a force (gravity)
 	//Multiply by an integer to make the Bee go faster
-	gl.bees[0].vel[0] += (dx / distance) * gl.gravity;
-	gl.bees[0].vel[1] += (dy / distance) * gl.gravity;
+	//gl.bees[0].vel[0] += (dx / distance) * gl.gravity;
+	//gl.bees[0].vel[1] += (dy / distance) * gl.gravity;
 
 	//Creates random interferences
 	//No repeat pattern
@@ -572,9 +565,9 @@ void render()
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		// Bee
+		// Draw Player
 		glPushMatrix();
-		glTranslatef(gl.bees[0].pos[0], gl.bees[0].pos[1], 0.0f);
+		glTranslatef(gl.xres/2, gl.yres-200.0f, 0.0f);
 
 		//Set Alpha Test
 		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
@@ -589,17 +582,17 @@ void render()
 		glBindTexture(GL_TEXTURE_2D, gl.spriteid);
 
 		//Make texture coordinates based on frame number
-		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f;
+		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f; // Column
 		float tx2 = tx1 + 0.2f;
-		float ty1 = 0.0f + (float)((gl.frameno-1) / 5) *0.2f;
-		float ty2 = ty1 + 0.2;
+		float ty1 = 0.0f + (float)((gl.frameno-1) / 2) * 0.5f; // Row
+		float ty2 = ty1 + 0.5f;
 
 		//Change x-coords so that the bee flips when he turns
-		if(gl.bees[0].vel[0] > 0.0) {
-			float tmp = tx1;
-			tx1 = tx2;
-			tx2 = tmp;
-		}
+		// if(gl.bees[0].vel[0] < 0.0) {
+		// 	float tmp = tx1;
+		// 	tx1 = tx2;
+		// 	tx2 = tmp;
+		// }
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(tx1, ty2); glVertex2f(-gl.bees[0].w, -gl.bees[0].h);
@@ -613,7 +606,6 @@ void render()
 		glDisable(GL_ALPHA_TEST);
 		glPopMatrix();
 		return;
-
 	}
 
 	if (g.state == STATE_GAME_OVER) {
@@ -625,10 +617,8 @@ void render()
 		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
 		ggprint8b(&r, 0, 0x00fff000, "Press r to restart");		
 		return;
-		//End Game
 	}
 }
-
 
 
 
