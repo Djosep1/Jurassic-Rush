@@ -64,7 +64,7 @@ public:
 	}
 } img("pics/background.png"),
   ps("pics/Player_Screen.png"),
-  sprite("pics/bees.png");
+  sprite("sprites/boy/run.png");
 
 struct Vector {
     float x, y, z;
@@ -269,7 +269,7 @@ void X11_wrapper::set_title()
 {
 	//Set the window title bar.
 	XMapWindow(dpy, win);
-	XStoreName(dpy, win, "Fossil Frenzy");
+	XStoreName(dpy, win, "Foreign Frenzy");
 }
 
 bool X11_wrapper::getXPending()
@@ -589,10 +589,10 @@ void render()
 		glBindTexture(GL_TEXTURE_2D, gl.spriteid);
 
 		//Make texture coordinates based on frame number
-		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f;
-		float tx2 = tx1 + 0.2f;
-		float ty1 = 0.0f + (float)((gl.frameno-1) / 5) *0.2f;
-		float ty2 = ty1 + 0.2;
+		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.5f;
+		float tx2 = tx1 + 0.5f;
+		float ty1 = 0.0f + (float)((gl.frameno-1) / 2) *0.5f;
+		float ty2 = ty1 + 0.5;
 
 		//Change x-coords so that the bee flips when he turns
 		if(gl.bees[0].vel[0] > 0.0) {
