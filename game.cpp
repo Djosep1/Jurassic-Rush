@@ -129,12 +129,15 @@ class Game {
 public:
 	int state;
 	int score;
+	int lives;
 	int playtime;
 	int countdown;
 	int starttime;
 	Game() {
+		// Initialize game state
 		state = STATE_INTRO;
 		score = 0;
+		lives = 3;
 	}
 } g;
 
@@ -352,11 +355,6 @@ void X11_wrapper::check_mouse(XEvent *e)
 		}
 		if (e->xbutton.button==3) {
 			//Right button was pressed.
-			if (g.state == STATE_GAME_OVER) {
-				//restart_game();
-				g.score = 0;
-				g.state = STATE_INTRO;
-			}
 			return;
 		}
 	}
@@ -384,6 +382,14 @@ int X11_wrapper::check_keys(XEvent *e)
 					g.starttime = time(NULL);
 					g.playtime = 10;
 				}
+				break;
+			case XK_r:
+				if (g.state == STATE_GAME_OVER) {
+					//restart_game();
+					g.score = 0;
+					g.state = STATE_INTRO;
+				}
+				break;
 			case XK_1:
 				//Key 1 was pressed
 				break;
@@ -418,23 +424,6 @@ void init_opengl(void)
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, img.width, img.height, 0,
 							GL_RGB, GL_UNSIGNED_BYTE, img.data);
 
-	//Sprite Image
-
-	//Make a new data stream, with 4 color components
-	//
-	// Old Data Stream
-	// 0 aaabbbccc 
-	// 1 dddeeefff
-	//
-	// New Data Stream
-	// 0 aaaabbbbcccc
-	// 1 ddddeeeeffff
-	//
-
-	//#define CALL_FUNC
-	//#ifdef CALL_FUNC
-	//unsigned char *data2 = buildAlphaData(&sprite);
-	//#else
 	unsigned char *data2 = new unsigned char[sprite.width*sprite.height*4];
 	for (int i = 0; i < sprite.height; i++) {
 		for (int j = 0; j < sprite.width; j++) {
@@ -448,10 +437,9 @@ void init_opengl(void)
 			data2[offset2+3] = ((unsigned char)sprite.data[offset+0] != 255 && 
 								(unsigned char)sprite.data[offset+1] != 255 && 
 								(unsigned char)sprite.data[offset+2] != 255);
-			//printf("%i", data2[offset2+3]);
 		}
 	}
-	//#endif
+
 	glGenTextures(1, &gl.spriteid);
 	glBindTexture(GL_TEXTURE_2D, gl.spriteid);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -539,9 +527,10 @@ void render()
 		r.center = 0;
 		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
 		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);		
-			//Initialize Texture Map
+		
+		//Initialize Texture Map
 		glColor3ub(255, 255, 255); //Make it brighter
-		//glColor3ub(80, 80, 160); //Make it darker
+
 		glBindTexture(GL_TEXTURE_2D, gl.texid);
 		glBegin(GL_QUADS);
 			glTexCoord2f(0, 1); glVertex2i(0,      0);
@@ -592,7 +581,6 @@ void render()
 		glDisable(GL_ALPHA_TEST);
 		glPopMatrix();
 		return;
-
 	}
 
 	if (g.state == STATE_GAME_OVER) {
@@ -602,7 +590,7 @@ void render()
 		r.center = 1;
 		ggprint8b(&r, 20, 0x00ffffff, "GAME OVER");
 		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
-		ggprint8b(&r, 0, 0x00fff000, "Right-click to play again");		
+		ggprint8b(&r, 0, 0x00fff000, "Press r to restart");		
 		return;
 	}
 }
