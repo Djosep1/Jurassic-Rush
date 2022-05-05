@@ -69,7 +69,8 @@ public:
 	}
 } img("pics/background.png"),
   ps("pics/Player_Screen.png"),
-  sprite("sprites/boy/run.png");
+  sprite("sprites/boy/run.png"),
+  intro("pics/Dungeon.png");
 
 enum {
 	STATE_INTRO,
@@ -94,6 +95,7 @@ public:
 	unsigned int texid;
 	unsigned int spriteid;
 	unsigned int psid;
+	unsigned int introid;
 	Flt gravity;
 	int frameno;
 	Global() {
@@ -132,7 +134,7 @@ public:
 		vel[1] = 1.0;
 	}
 	void set_dimensions(int x, int y) {
-		w = (float)x * 0.08;
+		w = (float)x * 0.05;
 		h = w;
 	}
 };
@@ -144,14 +146,14 @@ public:
 	float w, h;
 	float dir;
 	Box() {
-		w = 80.0;
-		h = 10.0;
+		w = 40.0;
+		h = 5.0;
 		pos[0] = 0.0f + w;	
-		pos[1] = gl.yres/2.0f;
+		pos[1] = gl.yres/4;
 		dir = 0.2f;
 	}
 	void set_dimensions(int x, int y) {
-		w = (float)x * 0.08;
+		w = (float)x * 0.05;
 		h = w;
 	}
 } b;
@@ -199,6 +201,7 @@ public:
 		players[0].pos[1] -= 8.0;
 		// Collision with bottom of screen
 		if (players[0].pos[1] <= players[0].h) {
+			lives -= 1;
 			players[0].pos[1] = players[0].h;
 			players[0].vel[1] = 0.0;
 		}
@@ -407,7 +410,7 @@ void X11_wrapper::check_mouse(XEvent *e)
 						g.score += 1;
 
 						//Check for Game Over
-						if (g.score == 5) {
+						if (g.lives == 0) {
 							g.state = STATE_GAME_OVER;
 						}
                 	}
@@ -450,7 +453,8 @@ int X11_wrapper::check_keys(XEvent *e)
 				}
 				break;
 			case XK_1:
-				//Key 1 was pressed
+			case XK_2:
+				//Key 2 was pressed
 				if (g.state == STATE_PLAYER_SELECT) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
@@ -562,6 +566,14 @@ void init_opengl(void)
     glEnable(GL_TEXTURE_2D);
     initialize_fonts();
 
+	//Intro Image
+	glGenTextures(1, &gl.introid);
+	glBindTexture(GL_TEXTURE_2D, gl.introid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, intro.width, intro.height, 0,
+							GL_RGB, GL_UNSIGNED_BYTE, intro.data);
+
 	//Background Image
 	glGenTextures(1, &gl.texid);
 	glBindTexture(GL_TEXTURE_2D, gl.texid);
@@ -578,6 +590,7 @@ void init_opengl(void)
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, ps.width, ps.height, 0,
 							GL_RGB, GL_UNSIGNED_BYTE, ps.data);
 
+	// Sprite Image
 	unsigned char *data2 = new unsigned char[sprite.width*sprite.height*4];
 	for (int i = 0; i < sprite.height; i++) {
 		for (int j = 0; j < sprite.width; j++) {
@@ -608,6 +621,9 @@ void init_opengl(void)
 
 void physics()
 {
+	// Gravity
+	//g.players[0].vel[1] += gl.gravity;
+
     // Check the Players Bounderies
 	if (g.players[0].pos[0] >= gl.xres) {
 		g.players[0].pos[0] = gl.xres;
@@ -628,7 +644,6 @@ void physics()
 
 	// Check if player is colliding with a box
 
-
 	// Collision Detection
 	b.pos[0] += b.dir;
 	if (b.pos[0] >= (gl.xres-b.w)) {
@@ -648,11 +663,19 @@ void render()
 
 	if (g.state == STATE_INTRO) {
 		// Show the Intro screen
-		r.bot = gl.yres / 2;
-		r.left = gl.xres / 2;
-		r.center = 1;
-		ggprint8b(&r, 30, 0x00ffffff, "Welcome to Fossil Frenzy!");
-		ggprint8b(&r, 20, 0x00ff0000, "Press enter to start");
+		// r.bot = gl.yres / 2;
+		// r.left = gl.xres / 2;
+		// r.center = 1;
+		// ggprint8b(&r, 30, 0x00ffffff, "Welcome to Fossil Frenzy!");
+		// ggprint8b(&r, 20, 0x00ff0000, "Press enter to start");
+		glColor3ub(255, 255, 255); //Make it brighter
+		glBindTexture(GL_TEXTURE_2D, gl.introid);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 1); glVertex2i(0,       0);
+			glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
+			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
+			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
+		glEnd();
 		return;
 	}
 
@@ -662,8 +685,8 @@ void render()
 
 		glBindTexture(GL_TEXTURE_2D, gl.psid);
 		glBegin(GL_QUADS);
-			glTexCoord2f(0, 1); glVertex2i(0,      0);
-			glTexCoord2f(0, 0); glVertex2i(0,      gl.yres);
+			glTexCoord2f(0, 1); glVertex2i(0,       0);
+			glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
 			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
