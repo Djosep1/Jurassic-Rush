@@ -127,7 +127,7 @@ public:
 	Player() {
 		w = h = 10.0;
 		pos[0] = gl.xres/2;
-		pos[1] = gl.yres - 200.0f;
+		pos[1] = gl.yres/2;
 		vel[0] = 4.0;
 		vel[1] = 1.0;
 	}
