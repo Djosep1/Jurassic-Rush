@@ -26,6 +26,11 @@ using namespace std;
 #include "fonts.h"
 #include <pthread.h>
 
+typedef double Flt;
+struct Vector {
+    float x, y, z;
+};
+
 class Image {
 public:
 	int width, height, max;
@@ -66,37 +71,11 @@ public:
   ps("pics/Player_Screen.png"),
   sprite("sprites/boy/run.png");
 
-struct Vector {
-    float x, y, z;
-};
-
-typedef double Flt;
-class Bee {
-public:
-    Flt pos[3];
-    Flt vel[3];
-    float w, h;
-    unsigned int color;
-    bool alive_or_dead;
-	Flt mass;
-	Bee() {
-		w = h = 10.0;
-		pos[0] = 1.0;
-		pos[1] = 200.0;
-		vel[0] = 4.0;
-		vel[1] = 0.0;
-	}
-	void set_dimensions(int x, int y) {
-		w = (float)x * 0.10;
-		h = w;
-	}
-};
-
 enum {
 	STATE_INTRO,
 	STATE_INSTRUCTIONS,
 	STATE_PLAYER_SELECT,
-	STATE_SHOW_OBJECTIVES,
+	STATE_PAUSE,
 	STATE_PLAY,
 	STATE_GAME_OVER
 };
@@ -104,19 +83,24 @@ enum {
 class Global {
 public:
 	int xres, yres;
-    float pos[2];
+	double sxres, syres;
+	char keys[65536];
+	float pos[2];
     float w;
 	float dir;
     int inside;
 	unsigned int texid;
 	unsigned int spriteid;
 	unsigned int psid;
-	Bee bees[2];
 	Flt gravity;
 	int frameno;
 	Global() {
+		memset(keys, 0, sizeof(keys));
 		xres = 1200;
 		yres = 720;
+		sxres = (double)xres;
+		syres = (double)yres;
+		gravity = 0.5;
 		// Box
 		w = 20.0f;
 		pos[0] = 0.0f + w;	
@@ -128,8 +112,30 @@ public:
 	};
 } gl;
 
+class Player {
+public:
+    Flt pos[3];
+    Flt vel[3];
+    float w, h;
+    unsigned int color;
+    bool alive_or_dead;
+	Flt mass;
+	Player() {
+		w = h = 10.0;
+		pos[0] = gl.xres/2;
+		pos[1] = gl.yres - 200.0f;
+		vel[0] = 4.0;
+		vel[1] = 1.0;
+	}
+	void set_dimensions(int x, int y) {
+		w = (float)x * 0.08;
+		h = w;
+	}
+};
+
 class Game {
 public:
+	Player players[2];
 	int state;
 	int score;
 	int lives;
@@ -141,6 +147,21 @@ public:
 		state = STATE_INTRO;
 		score = 0;
 		lives = 3;
+	}
+	void move_right() {
+		players[0].pos[0] += 8.0;
+	}
+	void move_left() {
+		players[0].pos[0] -= 8.0;
+	}
+	void move_up() {
+		players[0].pos[1] += 8.0;
+	}
+	void move_down() {
+		players[0].pos[1] -= 8.0;
+	}
+	void jump () {
+		players[0].pos[1] += 1.0;
 	}
 } g;
 
@@ -171,26 +192,28 @@ void *spriteThread(void *arg)
 {
 	//-----------------------------------------------------------------------------
 	//Setup timers
-	struct timespec start, end;
-	extern double timeDiff(struct timespec *start, struct timespec *end);
-	extern void timeCopy(struct timespec *dest, struct timespec *source);
+	// struct timespec start, end;
+	// extern double timeDiff(struct timespec *start, struct timespec *end);
+	// extern void timeCopy(struct timespec *dest, struct timespec *source);
 	//-----------------------------------------------------------------------------
-	clock_gettime(CLOCK_REALTIME, &start);
-	double diff;
-	while (1) {
-		//If an amount of time has passed, change the frame number.
-		clock_gettime(CLOCK_REALTIME, &end);
-		diff = timeDiff(&start, &end);
-		if (diff >= 0.05) {
-			//Enough time has passed
-			++gl.frameno;
-			if (gl.frameno > 10) {
-				//If frame number is 20 go back to 1
-				gl.frameno = 1;
-			}
-			timeCopy(&start, &end);
-		}
-	}
+	// clock_gettime(CLOCK_REALTIME, &start);
+	// double diff;
+	// while (true) {
+	// 	//If an amount of time has passed, change the frame number.
+	// 	clock_gettime(CLOCK_REALTIME, &end);
+	// 	diff = timeDiff(&start, &end);
+
+	// 	// How fast the frame changes
+	// 	if (diff >= 0.0625) {
+	// 		// Enough time has passed
+	// 		++gl.frameno;
+	// 		if (gl.frameno > 10) {
+	// 			//If frame number is 10 go back to 1
+	// 			gl.frameno = 1;
+	// 		}
+	// 		timeCopy(&start, &end);
+	// 	}
+	// }
 	return (void*)0;
 }
 
@@ -294,7 +317,7 @@ void X11_wrapper::reshape_window(int width, int height)
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-	gl.bees[0].set_dimensions(gl.xres, gl.yres);
+	g.players[0].set_dimensions(gl.xres, gl.yres);
 }
 
 void X11_wrapper::check_resize(XEvent *e)
@@ -366,13 +389,18 @@ void X11_wrapper::check_mouse(XEvent *e)
 
 int X11_wrapper::check_keys(XEvent *e)
 {
-	if (e->type != KeyPress && e->type != KeyRelease)
+	if (e->type != KeyPress && e->type != KeyRelease) {
 		return 0;
+	}
 	int key = XLookupKeysym(&e->xkey, 0);
+
+	// Key Press for Global
+	if (e->type == KeyPress) { gl.keys[key] = 1; }
+	if (e->type == KeyRelease) { gl.keys[key] = 0; }
+
 	if (e->type == KeyPress) {
 		switch (key) {
 			case XK_s:
-				//Key s was pressed
 				if (g.state == STATE_INTRO) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
@@ -391,8 +419,37 @@ int X11_wrapper::check_keys(XEvent *e)
 					g.state = STATE_PLAYER_SELECT;
 				}
 				break;
+			case XK_Right:
+				if (g.state == STATE_PLAY) {
+					//Move sprite to the right
+					g.move_right();
+				}
+				break;
+			case XK_Left:
+				if (g.state == STATE_PLAY) {
+					//Move sprite to the left
+					g.move_left();
+				}
+				break;
+			case XK_Down:
+				if (g.state == STATE_PLAY) {
+					//Move sprite down
+					g.move_down();
+				}
+				break;
+			case XK_Up:
+				if (g.state == STATE_PLAY) {
+					//Move sprite up
+					g.move_up();
+				}
+				break;
 			case XK_1:
 				//Key 1 was pressed
+				if (g.state == STATE_PLAYER_SELECT) {
+					g.state = STATE_PLAY;
+					g.starttime = time(NULL);
+					g.playtime = 10;
+				}
 				break;
 			case XK_Escape:
 				//Escape key was pressed
@@ -400,6 +457,48 @@ int X11_wrapper::check_keys(XEvent *e)
 		}
 	}
 	return 0;
+}
+
+unsigned char *buildAlphaData(Image *img)
+{
+	//Add 4th component to an RGB stream...
+	//RGBA
+	//When you do this, OpenGL is able to use the A component to determine
+	//transparency information.
+	//It is used in this application to erase parts of a texture-map from view.
+	int i;
+	int a,b,c;
+	unsigned char *newdata, *ptr;
+	unsigned char *data = (unsigned char *)img->data;
+	newdata = (unsigned char *)malloc(img->width * img->height * 4);
+	ptr = newdata;
+	for (i=0; i<img->width * img->height * 3; i+=3) {
+		a = *(data+0);
+		b = *(data+1);
+		c = *(data+2);
+		*(ptr+0) = a;
+		*(ptr+1) = b;
+		*(ptr+2) = c;
+		//-----------------------------------------------
+		//get largest color component...
+		//*(ptr+3) = (unsigned char)((
+		//		(int)*(ptr+0) +
+		//		(int)*(ptr+1) +
+		//		(int)*(ptr+2)) / 3);
+		//d = a;
+		//if (b >= a && b >= c) d = b;
+		//if (c >= a && c >= b) d = c;
+		//*(ptr+3) = d;
+		//-----------------------------------------------
+		//this code optimizes the commented code above.
+		//code contributed by student: Chris Smith
+		//
+		*(ptr+3) = (a != 255 && b != 255 && c );
+		//-----------------------------------------------
+		ptr += 4;
+		data += 3;
+	}
+	return newdata;
 }
 
 void init_opengl(void)
@@ -458,60 +557,56 @@ void init_opengl(void)
 	delete [] data2;
 
 	//Set the dimensions of the Bee
-	gl.bees[0].set_dimensions(gl.xres, gl.yres);
+	g.players[0].set_dimensions(gl.xres, gl.yres);
 }
 
 void physics()
 {
-	// Movement of the Bee
-	gl.bees[0].pos[0] += gl.bees[0].vel[0];
-	gl.bees[0].pos[1] += gl.bees[0].vel[1];
-
-    // Check the Bounderies
-	if (gl.bees[0].pos[0] >= gl.xres) {
-		gl.bees[0].pos[0] = gl.xres;
-		gl.bees[0].vel[0] = 0.0;
+    // Check the Players Bounderies
+	if (g.players[0].pos[0] >= gl.xres) {
+		g.players[0].pos[0] = gl.xres;
+		g.players[0].vel[0] = 0.0;
 	}
-	if (gl.bees[0].pos[0] <= 0) {
-		gl.bees[0].pos[0] = 0;
-		gl.bees[0].vel[0] = 0.0;
+	if (g.players[0].pos[0] <= 0) {
+		g.players[0].pos[0] = 0;
+		g.players[0].vel[0] = 0.0;
 	}
-	if (gl.bees[0].pos[1] >= gl.yres) {
-		gl.bees[0].pos[1] = gl.yres;
-		gl.bees[0].vel[1] = 0.0;
+	if (g.players[0].pos[1] >= gl.yres) {
+		g.players[0].pos[1] = gl.yres;
+		g.players[0].vel[1] = 0.0;
 	}
-	if (gl.bees[0].pos[1] <= 0) {
-		gl.bees[0].pos[1] = 0;
-		gl.bees[0].vel[1] = 0.0;
+	if (g.players[0].pos[1] <= 0) {
+		g.players[0].pos[1] = 0;
+		g.players[0].vel[1] = 0.0;
 	}
 	
-	//Move Bee towards flower
-	Flt cx = gl.xres/2.0;
-	Flt cy = gl.yres/2.0;
+	// //Move Bee towards flower
+	// Flt cx = gl.xres/2.0;
+	// Flt cy = gl.yres/2.0;
 
-	//Points toward the second flower on flower.jpg
-	//cx = gl.xres * (218.0 / 300.0);
-	//dx = gl.yres * (86.0 / 169.0);
+	// //Points toward the second flower on flower.jpg
+	// //cx = gl.xres * (218.0 / 300.0);
+	// //dx = gl.yres * (86.0 / 169.0);
 
-	Flt dx = cx - gl.bees[0].pos[0];
-	Flt dy = cy - gl.bees[0].pos[1];
-	Flt distance = (dx*dx + dy*dy);
+	// Flt dx = cx - g.players[0].pos[0];
+	// Flt dy = cy - g.players[0].pos[1];
+	// Flt distance = (dx*dx + dy*dy);
 
-	//If it goes near the center, it will
-	//get a burst of velocity
-	if (distance < 0.01) {
-		distance = 0.01; // Clamp
-	}
+	// //If it goes near the center, it will
+	// //get a burst of velocity
+	// if (distance < 0.01) {
+	// 	distance = 0.01; // Clamp
+	// }
 
-	//Change in velocity based on a force (gravity)
-	//Multiply by an integer to make the Bee go faster
-	//gl.bees[0].vel[0] += (dx / distance) * gl.gravity;
-	//gl.bees[0].vel[1] += (dy / distance) * gl.gravity;
+	// //Change in velocity based on a force (gravity)
+	// //Multiply by an integer to make the Bee go faster
+	// //g.players[0].vel[0] += (dx / distance) * gl.gravity;
+	// //g.players[0].vel[1] += (dy / distance) * gl.gravity;
 
-	//Creates random interferences
-	//No repeat pattern
-	gl.bees[0].vel[0] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
-	gl.bees[0].vel[1] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
+	// //Creates random interferences
+	// //No repeat pattern
+	// g.players[0].vel[0] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
+	// g.players[0].vel[1] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
 }
 
 void render()
@@ -567,7 +662,7 @@ void render()
 
 		// Draw Player
 		glPushMatrix();
-		glTranslatef(gl.xres/2, gl.yres-200.0f, 0.0f);
+		glTranslatef(g.players[0].pos[0], g.players[0].pos[1], 0.0f);
 
 		//Set Alpha Test
 		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
@@ -588,17 +683,17 @@ void render()
 		float ty2 = ty1 + 0.5f;
 
 		//Change x-coords so that the bee flips when he turns
-		// if(gl.bees[0].vel[0] < 0.0) {
+		// if(g.players[0].vel[0] < 0.0) {
 		// 	float tmp = tx1;
 		// 	tx1 = tx2;
 		// 	tx2 = tmp;
 		// }
 
 		glBegin(GL_QUADS);
-			glTexCoord2f(tx1, ty2); glVertex2f(-gl.bees[0].w, -gl.bees[0].h);
-			glTexCoord2f(tx1, ty1); glVertex2f(-gl.bees[0].w,  gl.bees[0].h);
-			glTexCoord2f(tx2, ty1); glVertex2f( gl.bees[0].w,  gl.bees[0].h);
-			glTexCoord2f(tx2, ty2); glVertex2f( gl.bees[0].w, -gl.bees[0].h);
+			glTexCoord2f(tx1, ty2); glVertex2f(-g.players[0].w, -g.players[0].h);
+			glTexCoord2f(tx1, ty1); glVertex2f(-g.players[0].w,  g.players[0].h);
+			glTexCoord2f(tx2, ty1); glVertex2f( g.players[0].w,  g.players[0].h);
+			glTexCoord2f(tx2, ty2); glVertex2f( g.players[0].w, -g.players[0].h);
 		glEnd();
 
 		//Turn off Alpha Test
