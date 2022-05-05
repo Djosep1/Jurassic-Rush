@@ -656,18 +656,6 @@ void render()
 		r.center = 0;
 		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
 		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);		
-		
-		// Draw Box
-		glPushMatrix();
-		glColor3ub(225, 173, 1);
-		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
-		glBegin(GL_QUADS);
-			glVertex2f(-gl.u, -gl.r);
-			glVertex2f(-gl.u,  gl.r);
-			glVertex2f( gl.u,  gl.r);
-			glVertex2f( gl.u, -gl.r);
-		glEnd();
-		glPopMatrix();
 
 		//Initialize Texture Map
 		glColor3ub(255, 255, 255); //Make it brighter
@@ -720,6 +708,18 @@ void render()
 		//Turn off Alpha Test
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_ALPHA_TEST);
+		glPopMatrix();
+
+		// Draw Box
+		glPushMatrix();
+		glColor3ub(225, 173, 1);
+		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
+		glBegin(GL_QUADS);
+			glVertex2f(-gl.u, -gl.r);
+			glVertex2f(-gl.u,  gl.r);
+			glVertex2f( gl.u,  gl.r);
+			glVertex2f( gl.u, -gl.r);
+		glEnd();
 		glPopMatrix();
 
 		return;
