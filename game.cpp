@@ -150,15 +150,31 @@ public:
 	}
 	void move_right() {
 		players[0].pos[0] += 8.0;
+		if (players[0].pos[0] >= gl.xres) {
+			players[0].pos[0] = gl.xres;
+			players[0].vel[0] = 0.0;
+		}
 	}
 	void move_left() {
 		players[0].pos[0] -= 8.0;
+		if (players[0].pos[0] <= 0) {
+			players[0].pos[0] = 0;
+			players[0].vel[0] = 0.0;
+		}
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
+		if (players[0].pos[1] >= gl.yres) {
+			players[0].pos[1] = gl.yres;
+			players[0].vel[1] = 0.0;
+		}
 	}
 	void move_down() {
 		players[0].pos[1] -= 8.0;
+		if (players[0].pos[1] <= 0) {
+			players[0].pos[1] = 0;
+			players[0].vel[1] = 0.0;
+		}
 	}
 	void jump () {
 		players[0].pos[1] += 1.0;
@@ -400,8 +416,15 @@ int X11_wrapper::check_keys(XEvent *e)
 
 	if (e->type == KeyPress) {
 		switch (key) {
-			case XK_s:
+			// Controls for game
+			case XK_Return:
 				if (g.state == STATE_INTRO) {
+					g.state = STATE_PLAYER_SELECT;
+				}
+				break;
+			case XK_1:
+				//Key 1 was pressed
+				if (g.state == STATE_PLAYER_SELECT) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
 					g.playtime = 10;
@@ -414,43 +437,39 @@ int X11_wrapper::check_keys(XEvent *e)
 					g.state = STATE_INTRO;
 				}
 				break;
-			case XK_p:
-				if (g.state == STATE_INTRO) {
-					g.state = STATE_PLAYER_SELECT;
-				}
-				break;
+
+			// Controls for Player 1
+			case XK_d:
 			case XK_Right:
 				if (g.state == STATE_PLAY) {
 					//Move sprite to the right
 					g.move_right();
 				}
 				break;
+			case XK_a:
 			case XK_Left:
 				if (g.state == STATE_PLAY) {
 					//Move sprite to the left
 					g.move_left();
 				}
 				break;
+			case XK_s:
 			case XK_Down:
 				if (g.state == STATE_PLAY) {
 					//Move sprite down
 					g.move_down();
 				}
 				break;
+			case XK_w:
 			case XK_Up:
 				if (g.state == STATE_PLAY) {
 					//Move sprite up
 					g.move_up();
 				}
 				break;
-			case XK_1:
-				//Key 1 was pressed
-				if (g.state == STATE_PLAYER_SELECT) {
-					g.state = STATE_PLAY;
-					g.starttime = time(NULL);
-					g.playtime = 10;
-				}
-				break;
+
+			// Controls to quit game
+			case XK_q:
 			case XK_Escape:
 				//Escape key was pressed
 				return 1;
@@ -579,34 +598,6 @@ void physics()
 		g.players[0].pos[1] = 0;
 		g.players[0].vel[1] = 0.0;
 	}
-	
-	// //Move Bee towards flower
-	// Flt cx = gl.xres/2.0;
-	// Flt cy = gl.yres/2.0;
-
-	// //Points toward the second flower on flower.jpg
-	// //cx = gl.xres * (218.0 / 300.0);
-	// //dx = gl.yres * (86.0 / 169.0);
-
-	// Flt dx = cx - g.players[0].pos[0];
-	// Flt dy = cy - g.players[0].pos[1];
-	// Flt distance = (dx*dx + dy*dy);
-
-	// //If it goes near the center, it will
-	// //get a burst of velocity
-	// if (distance < 0.01) {
-	// 	distance = 0.01; // Clamp
-	// }
-
-	// //Change in velocity based on a force (gravity)
-	// //Multiply by an integer to make the Bee go faster
-	// //g.players[0].vel[0] += (dx / distance) * gl.gravity;
-	// //g.players[0].vel[1] += (dy / distance) * gl.gravity;
-
-	// //Creates random interferences
-	// //No repeat pattern
-	// g.players[0].vel[0] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
-	// g.players[0].vel[1] += ((Flt)rand() / (Flt)RAND_MAX) * 0.50 - 0.25;
 }
 
 void render()
@@ -620,8 +611,7 @@ void render()
 		r.left = gl.xres / 2;
 		r.center = 1;
 		ggprint8b(&r, 30, 0x00ffffff, "Welcome to Fossil Frenzy!");
-		ggprint8b(&r, 20, 0x00ff0000, "Press s to start");
-		ggprint8b(&r, 0, 0x00ff0000, "Press p to go to player screen");
+		ggprint8b(&r, 20, 0x00ff0000, "Press enter to start");
 		return;
 	}
 
@@ -683,10 +673,10 @@ void render()
 		float ty2 = ty1 + 0.5f;
 
 		//Change x-coords so that the bee flips when he turns
-		// if(g.players[0].vel[0] < 0.0) {
-		// 	float tmp = tx1;
-		// 	tx1 = tx2;
-		// 	tx2 = tmp;
+		// if (g.players[0].pos[0] < 0.0) {
+		// 	float tmp = tx2;
+		// 	tx2 = tx1;
+		// 	tx1 = tmp;
 		// }
 
 		glBegin(GL_QUADS);
