@@ -606,6 +606,17 @@ void physics()
 		g.players[0].pos[1] = 0;
 		g.players[0].vel[1] = 0.0;
 	}
+
+	// Collision Detection
+	gl.pos[0] += gl.dir;
+	if (gl.pos[0] >= (gl.xres-gl.u)) {
+		gl.pos[0] = (gl.xres-gl.u);
+		gl.dir = -gl.dir;
+	}
+	if (gl.pos[0] <= gl.u) {
+		gl.pos[0] = gl.u;
+		gl.dir = -gl.dir;
+	}
 }
 
 void render()
@@ -646,6 +657,18 @@ void render()
 		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
 		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);		
 		
+		// Draw Box
+		glPushMatrix();
+		glColor3ub(225, 173, 1);
+		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
+		glBegin(GL_QUADS);
+			glVertex2f(-gl.u, -gl.r);
+			glVertex2f(-gl.u,  gl.r);
+			glVertex2f( gl.u,  gl.r);
+			glVertex2f( gl.u, -gl.r);
+		glEnd();
+		glPopMatrix();
+
 		//Initialize Texture Map
 		glColor3ub(255, 255, 255); //Make it brighter
 
@@ -698,27 +721,7 @@ void render()
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_ALPHA_TEST);
 		glPopMatrix();
-		//
-	    //draw box to jump on
-		glPushMatrix();
-		glColor3ub(225, 173, 1);
-		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
-		glBegin(GL_QUADS);
-			glVertex2f(-gl.u, -gl.r);
-			glVertex2f(-gl.u,  gl.r);
-			glVertex2f( gl.u,  gl.r);
-			glVertex2f( gl.u, -gl.r);
-		glEnd();
-		glPopMatrix();
-		gl.pos[0] += gl.dir;
-		if (gl.pos[0] >= (gl.xres-gl.u)) {
-			gl.pos[0] = (gl.xres-gl.u);
-			gl.dir = -gl.dir;
-		}
-		if (gl.pos[0] <= gl.u) {
-			gl.pos[0] = gl.u;
-			gl.dir = -gl.dir;
-		}
+
 		return;
 	}
 
