@@ -67,10 +67,10 @@ public:
 			unlink(newfile);
 		}
 	}
-} img("pics/background.png"),
-  ps("pics/Player_Screen.png"),
-  sprite("sprites/boy/run.png"),
-  intro("pics/Dungeon.png");
+} img("pics/background.ppm"),
+  ps("pics/Player_Screen.ppm"),
+  sprite("sprites/boy/run.ppm"),
+  intro("pics/Dungeon.ppm");
 
 enum {
 	STATE_INTRO,
@@ -150,7 +150,7 @@ public:
 		h = 5.0;
 		pos[0] = 0.0f + w;	
 		pos[1] = gl.yres/4;
-		dir = 0.2f;
+		dir = 25.0f;
 	}
 	void set_dimensions(int x, int y) {
 		w = (float)x * 0.05;
