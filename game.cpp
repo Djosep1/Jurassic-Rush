@@ -96,8 +96,8 @@ public:
 	int frameno;
 	Global() {
 		memset(keys, 0, sizeof(keys));
-		xres = 1200;
-		yres = 720;
+		xres = 400;
+		yres = 200;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.5;
