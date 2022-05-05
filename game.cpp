@@ -150,29 +150,33 @@ public:
 	}
 	void move_right() {
 		players[0].pos[0] += 8.0;
-		if (players[0].pos[0] >= gl.xres) {
-			players[0].pos[0] = gl.xres;
+		// Collision with right of screen
+		if (players[0].pos[0] >= gl.xres-players[0].w) {
+			players[0].pos[0] = gl.xres-players[0].w;
 			players[0].vel[0] = 0.0;
 		}
 	}
 	void move_left() {
 		players[0].pos[0] -= 8.0;
-		if (players[0].pos[0] <= 0) {
-			players[0].pos[0] = 0;
+		// Collision with left of screen
+		if (players[0].pos[0] <= players[0].w) {
+			players[0].pos[0] = players[0].w;
 			players[0].vel[0] = 0.0;
 		}
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
-		if (players[0].pos[1] >= gl.yres) {
-			players[0].pos[1] = gl.yres;
+		// Collision with top of screen
+		if (players[0].pos[1] >= gl.yres-players[0].h) {
+			players[0].pos[1] = gl.yres-players[0].h;
 			players[0].vel[1] = 0.0;
 		}
 	}
 	void move_down() {
 		players[0].pos[1] -= 8.0;
-		if (players[0].pos[1] <= 0) {
-			players[0].pos[1] = 0;
+		// Collision with bottom of screen
+		if (players[0].pos[1] <= players[0].h) {
+			players[0].pos[1] = players[0].h;
 			players[0].vel[1] = 0.0;
 		}
 	}
