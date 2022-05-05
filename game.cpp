@@ -87,6 +87,8 @@ public:
 	char keys[65536];
 	float pos[2];
     float w;
+	float r; //x value box
+	float u; // y value box
 	float dir;
     int inside;
 	unsigned int texid;
@@ -103,6 +105,8 @@ public:
 		gravity = 0.5;
 		// Box
 		w = 20.0f;
+		u = 40.0f;
+		r = 10.0f;
 		pos[0] = 0.0f + w;	
 		pos[1] = yres/2.0f;	
 		dir = 5.0f;
@@ -694,8 +698,30 @@ void render()
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_ALPHA_TEST);
 		glPopMatrix();
+		//
+	    //draw box to jump on
+		glPushMatrix();
+		glColor3ub(225, 173, 1);
+		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
+		glBegin(GL_QUADS);
+			glVertex2f(-gl.u, -gl.r);
+			glVertex2f(-gl.u,  gl.r);
+			glVertex2f( gl.u,  gl.r);
+			glVertex2f( gl.u, -gl.r);
+		glEnd();
+		glPopMatrix();
+		gl.pos[0] += gl.dir;
+		if (gl.pos[0] >= (gl.xres-gl.u)) {
+			gl.pos[0] = (gl.xres-gl.u);
+			gl.dir = -gl.dir;
+		}
+		if (gl.pos[0] <= gl.u) {
+			gl.pos[0] = gl.u;
+			gl.dir = -gl.dir;
+		}
 		return;
 	}
+
 
 	if (g.state == STATE_GAME_OVER) {
 		// Show the Game Over screen
