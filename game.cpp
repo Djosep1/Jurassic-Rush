@@ -137,6 +137,25 @@ public:
 	}
 };
 
+class Box {
+public:
+	Flt pos[3];
+	Flt vel[3];
+	float w, h;
+	float dir;
+	Box() {
+		w = 80.0;
+		h = 10.0;
+		pos[0] = 0.0f + w;	
+		pos[1] = gl.yres/2.0f;
+		dir = 0.2f;
+	}
+	void set_dimensions(int x, int y) {
+		w = (float)x * 0.08;
+		h = w;
+	}
+} b;
+
 class Game {
 public:
 	Player players[2];
@@ -607,15 +626,18 @@ void physics()
 		g.players[0].vel[1] = 0.0;
 	}
 
+	// Check if player is colliding with a box
+
+
 	// Collision Detection
-	gl.pos[0] += gl.dir;
-	if (gl.pos[0] >= (gl.xres-gl.u)) {
-		gl.pos[0] = (gl.xres-gl.u);
-		gl.dir = -gl.dir;
+	b.pos[0] += b.dir;
+	if (b.pos[0] >= (gl.xres-b.w)) {
+		b.pos[0] = (gl.xres-b.w);
+		b.dir = -b.dir;
 	}
-	if (gl.pos[0] <= gl.u) {
-		gl.pos[0] = gl.u;
-		gl.dir = -gl.dir;
+	if (b.pos[0] <= b.w) {
+		b.pos[0] = b.w;
+		b.dir = -b.dir;
 	}
 }
 
@@ -713,12 +735,12 @@ void render()
 		// Draw Box
 		glPushMatrix();
 		glColor3ub(225, 173, 1);
-		glTranslatef(gl.pos[0], gl.pos[1], 0.0f);
+		glTranslatef(b.pos[0], b.pos[1], 0.0f);
 		glBegin(GL_QUADS);
-			glVertex2f(-gl.u, -gl.r);
-			glVertex2f(-gl.u,  gl.r);
-			glVertex2f( gl.u,  gl.r);
-			glVertex2f( gl.u, -gl.r);
+			glVertex2f(-b.w, -b.h);
+			glVertex2f(-b.w,  b.h);
+			glVertex2f( b.w,  b.h);
+			glVertex2f( b.w, -b.h);
 		glEnd();
 		glPopMatrix();
 
