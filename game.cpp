@@ -31,6 +31,9 @@ struct Vector {
     float x, y, z;
 };
 
+// Function Declarations
+void restartGame();
+
 class Image {
 public:
 	int width, height, max;
@@ -50,7 +53,7 @@ public:
 			strcat(newfile, ".ppm");
 			sprintf(str, "convert %s %s", fname, newfile);
 			system(str);
-			fin.open(newfile);
+			fin.open(newfile, ios::in|ios::out);
 		} else {
 			fin.open(fname);
 		}
@@ -60,17 +63,17 @@ public:
 		fin >> max;
 		//width *  height * the number of colors - r g b
 		data = new char [width * height * 3];
-		fin.read(data, 1); //Add data by 1 so that it can read max fully
+		fin.read(data, 1); // Add data by 1 so that it can read max fully
 		fin.read(data, width * height * 3); 
 		fin.close();
 		if (!isPPM) {
 			unlink(newfile);
 		}
 	}
-} img("pics/background.ppm"),
-  ps("pics/Player_Screen.ppm"),
-  sprite("sprites/boy/run.ppm"),
-  intro("pics/Dungeon.ppm");
+} img("pics/background.png"),
+  ps("pics/Player_Screen.png"),
+  sprite("sprites/boy/run.png"),
+  intro("pics/Dungeon.png");
 
 enum {
 	STATE_INTRO,
@@ -86,18 +89,14 @@ public:
 	int xres, yres;
 	double sxres, syres;
 	char keys[65536];
-	float pos[2];
     float w;
-	float r; //x value box
-	float u; // y value box
 	float dir;
-    int inside;
+	Flt gravity;
+	int frameno;
 	unsigned int texid;
 	unsigned int spriteid;
 	unsigned int psid;
 	unsigned int introid;
-	Flt gravity;
-	int frameno;
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		xres = 400;
@@ -105,33 +104,23 @@ public:
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.5;
-		// Box
-		w = 20.0f;
-		u = 40.0f;
-		r = 10.0f;
-		pos[0] = 0.0f + w;	
-		pos[1] = yres/2.0f;	
 		dir = 5.0f;
-		inside = 0;
-		gravity = 20.0;
 		frameno = 0;
 	};
 } gl;
 
 class Player {
 public:
-    Flt pos[3];
-    Flt vel[3];
+    Flt pos[2];
+    Flt vel[2];
     float w, h;
     unsigned int color;
     bool alive_or_dead;
 	Flt mass;
 	Player() {
-		w = h = 10.0;
 		pos[0] = gl.xres/2;
 		pos[1] = gl.yres/2;
-		vel[0] = 4.0;
-		vel[1] = 1.0;
+		vel[0] = vel[1] = 0.0f;
 	}
 	void set_dimensions(int x, int y) {
 		w = (float)x * 0.05;
@@ -141,20 +130,18 @@ public:
 
 class Box {
 public:
-	Flt pos[3];
-	Flt vel[3];
+	Flt pos[2];
+	Flt vel[2];
 	float w, h;
 	float dir;
 	Box() {
-		w = 40.0;
-		h = 5.0;
-		pos[0] = 0.0f + w;	
+		pos[0] = 0.0f;	
 		pos[1] = gl.yres/4;
-		dir = 25.0f;
+		dir = 0.2f;
 	}
 	void set_dimensions(int x, int y) {
-		w = (float)x * 0.05;
-		h = w;
+		w = (float)x * 0.10f;
+		h = (float)y * 0.025f;
 	}
 } b;
 
@@ -364,6 +351,7 @@ void X11_wrapper::reshape_window(int width, int height)
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 	g.players[0].set_dimensions(gl.xres, gl.yres);
+	b.set_dimensions(gl.xres, gl.yres);
 }
 
 void X11_wrapper::check_resize(XEvent *e)
@@ -399,22 +387,13 @@ void X11_wrapper::check_mouse(XEvent *e)
 	if (e->type == ButtonPress) {
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
-			int y = gl.yres - e->xbutton.y;
-            int x = e->xbutton.x;
+			//int y = gl.yres - e->xbutton.y;
+            //int x = e->xbutton.x;
 			if (g.state == STATE_INTRO) {
 
 			}
 			if (g.state == STATE_PLAY) {
-				if (x >= gl.pos[0] - gl.w && x <= gl.pos[0] + gl.w) {
-					if (y >= gl.pos[1] - gl.w && y <= gl.pos[1] + gl.w) {
-						g.score += 1;
-
-						//Check for Game Over
-						if (g.lives == 0) {
-							g.state = STATE_GAME_OVER;
-						}
-                	}
-            	}
+		
 			}       
 			return;
 		}
@@ -463,9 +442,7 @@ int X11_wrapper::check_keys(XEvent *e)
 				break;
 			case XK_r:
 				if (g.state == STATE_GAME_OVER) {
-					//restart_game();
-					g.score = 0;
-					g.state = STATE_INTRO;
+					restartGame();
 				}
 				break;
 
@@ -617,12 +594,21 @@ void init_opengl(void)
 
 	//Set the dimensions of the Bee
 	g.players[0].set_dimensions(gl.xres, gl.yres);
+	b.set_dimensions(gl.xres, gl.yres);
+}
+
+void restartGame()
+{
+	//Reset the game
+	g.score = 0;
+	g.lives = 3;
+	g.state = STATE_INTRO;
 }
 
 void physics()
 {
 	// Gravity
-	//g.players[0].vel[1] += gl.gravity;
+	g.players[0].vel[1] += gl.gravity;
 
     // Check the Players Bounderies
 	if (g.players[0].pos[0] >= gl.xres) {
@@ -766,6 +752,11 @@ void render()
 			glVertex2f( b.w, -b.h);
 		glEnd();
 		glPopMatrix();
+
+		//Check for Game Over
+		if (g.lives == 0) {
+			g.state = STATE_GAME_OVER;
+		}
 
 		return;
 	}
