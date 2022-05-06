@@ -31,9 +31,6 @@ struct Vector {
     float x, y, z;
 };
 
-// Function Declarations
-void restartGame();
-
 class Image {
 public:
 	int width, height, max;
@@ -99,11 +96,14 @@ public:
 	unsigned int introid;
 	Global() {
 		memset(keys, 0, sizeof(keys));
-		xres = 400;
-		yres = 200;
+		// Odin
+		// xres = 640;
+		// yres = 480;
+		xres = 1200;
+		yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
-		gravity = 0.5;
+		gravity = 0.0000005f;
 		dir = 5.0f;
 		frameno = 0;
 	};
@@ -120,7 +120,8 @@ public:
 	Player() {
 		pos[0] = gl.xres/2;
 		pos[1] = gl.yres/2;
-		vel[0] = vel[1] = 0.0f;
+		vel[0] = 0.0f;
+		vel[1] = -1.0f;
 	}
 	void set_dimensions(int x, int y) {
 		w = (float)x * 0.05;
@@ -162,39 +163,18 @@ public:
 	}
 	void move_right() {
 		players[0].pos[0] += 8.0;
-		// Collision with right of screen
-		if (players[0].pos[0] >= gl.xres-players[0].w) {
-			players[0].pos[0] = gl.xres-players[0].w;
-			players[0].vel[0] = 0.0;
-		}
 	}
 	void move_left() {
 		players[0].pos[0] -= 8.0;
-		// Collision with left of screen
-		if (players[0].pos[0] <= players[0].w) {
-			players[0].pos[0] = players[0].w;
-			players[0].vel[0] = 0.0;
-		}
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
-		// Collision with top of screen
-		if (players[0].pos[1] >= gl.yres-players[0].h) {
-			players[0].pos[1] = gl.yres-players[0].h;
-			players[0].vel[1] = 0.0;
-		}
 	}
 	void move_down() {
 		players[0].pos[1] -= 8.0;
-		// Collision with bottom of screen
-		if (players[0].pos[1] <= players[0].h) {
-			lives -= 1;
-			players[0].pos[1] = players[0].h;
-			players[0].vel[1] = 0.0;
-		}
 	}
 	void jump () {
-		players[0].pos[1] += 1.0;
+		players[0].pos[1] += 10.0;
 	}
 } g;
 
@@ -220,6 +200,7 @@ public:
 void init_opengl(void);
 void physics(void);
 void render(void);
+void restartGame(void);
 
 void *spriteThread(void *arg)
 {
@@ -351,6 +332,7 @@ void X11_wrapper::reshape_window(int width, int height)
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 	g.players[0].set_dimensions(gl.xres, gl.yres);
+
 	b.set_dimensions(gl.xres, gl.yres);
 }
 
@@ -388,13 +370,7 @@ void X11_wrapper::check_mouse(XEvent *e)
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
 			//int y = gl.yres - e->xbutton.y;
-            //int x = e->xbutton.x;
-			if (g.state == STATE_INTRO) {
-
-			}
-			if (g.state == STATE_PLAY) {
-		
-			}       
+            //int x = e->xbutton.x;  
 			return;
 		}
 		if (e->xbutton.button==3) {
@@ -473,6 +449,12 @@ int X11_wrapper::check_keys(XEvent *e)
 				if (g.state == STATE_PLAY) {
 					//Move sprite up
 					g.move_up();
+				}
+				break;
+			case XK_space:
+				if (g.state == STATE_PLAY) {
+					// Jump
+					g.jump();
 				}
 				break;
 
@@ -592,7 +574,7 @@ void init_opengl(void)
 									GL_RGBA, GL_UNSIGNED_BYTE, data2);
 	delete [] data2;
 
-	//Set the dimensions of the Bee
+	//Set the dimensions of the sprite and box
 	g.players[0].set_dimensions(gl.xres, gl.yres);
 	b.set_dimensions(gl.xres, gl.yres);
 }
@@ -608,24 +590,32 @@ void restartGame()
 void physics()
 {
 	// Gravity
-	g.players[0].vel[1] += gl.gravity;
+	if (g.state == STATE_PLAY) {
+		g.players[0].vel[1] -= gl.gravity;
+		g.players[0].pos[1] += g.players[0].vel[1];
+	}
 
     // Check the Players Bounderies
-	if (g.players[0].pos[0] >= gl.xres) {
-		g.players[0].pos[0] = gl.xres;
+	// Collision with right of screen
+	if (g.players[0].pos[0] >= gl.xres-g.players[0].w) {
+		g.players[0].pos[0] = gl.xres-g.players[0].w;
 		g.players[0].vel[0] = 0.0;
 	}
-	if (g.players[0].pos[0] <= 0) {
-		g.players[0].pos[0] = 0;
+	// Collision with left of screen
+	if (g.players[0].pos[0] <= g.players[0].w) {
+		g.players[0].pos[0] = g.players[0].w;
 		g.players[0].vel[0] = 0.0;
 	}
-	if (g.players[0].pos[1] >= gl.yres) {
-		g.players[0].pos[1] = gl.yres;
+	// Collision with top of screen
+	if (g.players[0].pos[1] >= gl.yres-g.players[0].h) {
+		g.players[0].pos[1] = gl.yres-g.players[0].h;
 		g.players[0].vel[1] = 0.0;
 	}
-	if (g.players[0].pos[1] <= 0) {
-		g.players[0].pos[1] = 0;
+	// Collision with bottom of screen
+	if (g.players[0].pos[1] <= g.players[0].h) {
+		g.players[0].pos[1] = g.players[0].h;
 		g.players[0].vel[1] = 0.0;
+		//g.lives -= 1;
 	}
 
 	// Check if player is colliding with a box
