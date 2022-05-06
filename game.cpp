@@ -155,16 +155,20 @@ public:
 	int playtime;
 	int countdown;
 	int starttime;
+	float position;
 	Game() {
 		// Initialize game state
 		state = STATE_INTRO;
 		score = 0;
 		lives = 3;
+		position = 0;
 	}
 	void move_right() {
+		position = 1.0f;
 		players[0].pos[0] += 8.0;
 	}
 	void move_left() {
+		position = -1.0f;
 		players[0].pos[0] -= 8.0;
 	}
 	void move_up() {
@@ -683,8 +687,8 @@ void render()
 
 		glBindTexture(GL_TEXTURE_2D, gl.texid);
 		glBegin(GL_QUADS);
-			glTexCoord2f(0, 1); glVertex2i(0,      0);
-			glTexCoord2f(0, 0); glVertex2i(0,      gl.yres);
+			glTexCoord2f(0, 1); glVertex2i(0,       0);
+			glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
 			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
@@ -713,11 +717,11 @@ void render()
 		float ty2 = ty1 + 0.5f;
 
 		//Change x-coords so that the bee flips when he turns
-		// if (g.players[0].pos[0] < 0.0) {
-		// 	float tmp = tx2;
-		// 	tx2 = tx1;
-		// 	tx1 = tmp;
-		// }
+		if (g.position < 0.0) {
+			float tmp = tx2;
+			tx2 = tx1;
+			tx1 = tmp;
+		}
 
 		glBegin(GL_QUADS);
 			glTexCoord2f(tx1, ty2); glVertex2f(-g.players[0].w, -g.players[0].h);
