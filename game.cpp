@@ -72,6 +72,10 @@ public:
   sprite("sprites/boy/run.png"),
   intro("pics/Dungeon.png");
 
+// Choose between a girl or boy player.
+Image player[2] = {"sprites/boy/run.png", "sprites/girl/run.png"};
+int nplayer = 0;
+
 enum {
 	STATE_INTRO,
 	STATE_INSTRUCTIONS,
@@ -103,7 +107,7 @@ public:
 		yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
-		gravity = 0.0000005f;
+		gravity = 0.005f;
 		dir = 5.0f;
 		frameno = 0;
 	};
@@ -121,7 +125,7 @@ public:
 		pos[0] = gl.xres/2;
 		pos[1] = gl.yres/2;
 		vel[0] = 0.0f;
-		vel[1] = -1.0f;
+		vel[1] = 0.0f;
 	}
 	void set_dimensions(int x, int y) {
 		w = (float)x * 0.05;
@@ -164,12 +168,20 @@ public:
 		position = 0;
 	}
 	void move_right() {
-		position = 1.0f;
-		players[0].pos[0] += 8.0;
+		if (gl.keys[XK_Right]) {
+			position = 0.0f;
+			players[0].pos[0] += 0.5f;
+		}
+		// position = 1.0f;
+		// players[0].pos[0] += 8.0;
 	}
 	void move_left() {
-		position = -1.0f;
-		players[0].pos[0] -= 8.0;
+		if (gl.keys[XK_Left]) {
+			position = -1.0f;
+			players[0].pos[0] -= 0.5f;
+		}
+		// position = -1.0f;
+		// players[0].pos[0] -= 8.0;
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
@@ -178,7 +190,11 @@ public:
 		players[0].pos[1] -= 8.0;
 	}
 	void jump () {
-		players[0].pos[1] += 10.0;
+		if (gl.keys[XK_space] == 1) {
+			players[0].vel[1] += 0.05f;
+		}
+		players[0].vel[1] -= gl.gravity;
+		players[0].pos[1] += players[0].vel[1];
 	}
 } g;
 
@@ -431,34 +447,28 @@ int X11_wrapper::check_keys(XEvent *e)
 			case XK_Right:
 				if (g.state == STATE_PLAY) {
 					//Move sprite to the right
-					g.move_right();
+					//g.move_right();
 				}
 				break;
 			case XK_a:
 			case XK_Left:
 				if (g.state == STATE_PLAY) {
 					//Move sprite to the left
-					g.move_left();
+					//g.move_left();
 				}
 				break;
 			case XK_s:
 			case XK_Down:
 				if (g.state == STATE_PLAY) {
 					//Move sprite down
-					g.move_down();
+					//g.move_down();
 				}
 				break;
 			case XK_w:
 			case XK_Up:
 				if (g.state == STATE_PLAY) {
 					//Move sprite up
-					g.move_up();
-				}
-				break;
-			case XK_space:
-				if (g.state == STATE_PLAY) {
-					// Jump
-					g.jump();
+					//g.move_up();
 				}
 				break;
 
@@ -564,9 +574,9 @@ void init_opengl(void)
 			data2[offset2+0] = sprite.data[offset+0];
 			data2[offset2+1] = sprite.data[offset+1];
 			data2[offset2+2] = sprite.data[offset+2];
-			data2[offset2+3] = ((unsigned char)sprite.data[offset+0] != 255 && 
-								(unsigned char)sprite.data[offset+1] != 255 && 
-								(unsigned char)sprite.data[offset+2] != 255);
+			data2[offset2+3] = ((unsigned char)sprite.data[offset+0] != 153 && 
+								(unsigned char)sprite.data[offset+1] != 153 && 
+								(unsigned char)sprite.data[offset+2] != 153);
 		}
 	}
 
@@ -595,11 +605,13 @@ void physics()
 {
 	// Gravity
 	if (g.state == STATE_PLAY) {
-		g.players[0].vel[1] -= gl.gravity;
-		g.players[0].pos[1] += g.players[0].vel[1];
+		// Movement Controls
+		g.jump();
+		g.move_left();
+		g.move_right();
 	}
 
-    // Check the Players Bounderies
+    // Check the Players Boundaries
 	// Collision with right of screen
 	if (g.players[0].pos[0] >= gl.xres-g.players[0].w) {
 		g.players[0].pos[0] = gl.xres-g.players[0].w;
@@ -623,6 +635,9 @@ void physics()
 	}
 
 	// Check if player is colliding with a box
+	if (g.players[0].pos[1] <= b.pos[0]) {
+
+	}
 
 	// Collision Detection
 	b.pos[0] += b.dir;
@@ -643,11 +658,7 @@ void render()
 
 	if (g.state == STATE_INTRO) {
 		// Show the Intro screen
-		// r.bot = gl.yres / 2;
-		// r.left = gl.xres / 2;
-		// r.center = 1;
-		// ggprint8b(&r, 30, 0x00ffffff, "Welcome to Fossil Frenzy!");
-		// ggprint8b(&r, 20, 0x00ff0000, "Press enter to start");
+
 		glColor3ub(255, 255, 255); //Make it brighter
 		glBindTexture(GL_TEXTURE_2D, gl.introid);
 		glBegin(GL_QUADS);
@@ -704,7 +715,7 @@ void render()
 
 		//Transparent if alpha value is greater than 0.0
 		glAlphaFunc(GL_GREATER, 0.0f);
-		
+
 		//Set 4-channels of color intensity
 		glColor4ub(255, 255, 255, 255);
 
@@ -754,7 +765,6 @@ void render()
 
 		return;
 	}
-
 
 	if (g.state == STATE_GAME_OVER) {
 		// Show the Game Over screen
