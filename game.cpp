@@ -127,7 +127,7 @@ public:
     bool alive_or_dead;
 	Flt mass;
 	Player() {
-		pos[0] = gl.xres/2;
+		pos[0] = gl.xres/12;
 		pos[1] = gl.yres/2;
 		vel[0] = 0.0f;
 		vel[1] = 0.0f;
@@ -625,30 +625,8 @@ void physics()
 		//g.lives -= 1;
 	}
 
-	// Check if player is colliding with a box
-	// Flt d0 = g.players[0].pos[0] - b.pos[0];
-	// Flt d1 = g.players[0].pos[1] - b.pos[1];
-	// Flt dist = sqrt(d0*d0 + d1*d1);
-
-	// if (dist <= g.players[0].w + b.w) {
-	// 	// Player is colliding with a box
-	// 	g.players[0].pos[0] = b.pos[0] + b.w + g.players[0].w;
-	// 	g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
-	// 	g.players[0].vel[1] = 0.0;
-	// }
-
-	if (g.players[0].pos[0] >= b.pos[0] && g.players[0].pos[0] <= b.pos[0] + b.w) {
-		if (g.players[0].pos[1] >= b.pos[1] && g.players[0].pos[1] <= b.pos[1] + b.h) {
-			// Player is colliding with a box
-			//g.players[0].pos[0] = b.pos[0] + b.w + g.players[0].w;
-			g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
-			g.players[0].vel[1] = 0.0;
-			gl.gravity = 0;
-		}
-	}
-
 	// Collision Detection for the boxes
-	//b.pos[0] += b.dir;
+	b.pos[0] += b.dir;
 
 	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
@@ -659,6 +637,19 @@ void physics()
 	if (b.pos[0] <= b.w) {
 		b.pos[0] = b.w;
 		b.dir = -b.dir;
+	}
+
+	// Player and Box Collision
+	Flt d0 = g.players[0].pos[0] - b.pos[0];
+	Flt d1 = g.players[0].pos[1] - b.pos[1];
+	Flt dist = sqrt(d0*d0 + d1*d1);
+	d0 /= dist;
+	d1 /= dist;
+	if (dist < g.players[0].h + b.h) {
+		g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
+		//g.players[0].vel[0] = 0.0;
+		g.players[0].vel[1] = 0.0;
+		//gl.gravity = 0;
 	}
 }
 
