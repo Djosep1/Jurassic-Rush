@@ -171,7 +171,7 @@ public:
 class Game {
 public:
 	Player players[2];
-	Box boxes[1];
+	Box boxes[5];
 	int state;
 	int score;
 	int lives;
@@ -242,28 +242,29 @@ void *spriteThread(void *arg)
 {
 	//-----------------------------------------------------------------------------
 	//Setup timers
-	// struct timespec start, end;
-	// extern double timeDiff(struct timespec *start, struct timespec *end);
-	// extern void timeCopy(struct timespec *dest, struct timespec *source);
+	struct timespec start, end;
+	extern double timeDiff(struct timespec *start, struct timespec *end);
+	extern void timeCopy(struct timespec *dest, struct timespec *source);
 	// //-----------------------------------------------------------------------------
 	// clock_gettime(CLOCK_REALTIME, &start);
-	// double diff;
-	// while (true) {
-	// 	//If an amount of time has passed, change the frame number.
-	// 	clock_gettime(CLOCK_REALTIME, &end);
-	// 	diff = timeDiff(&start, &end);
-
-	// 	// How fast the frame changes
-	// 	if (diff >= 0.0625) {
-	// 		// Enough time has passed
-	// 		++gl.frameno;
-	// 		if (gl.frameno > 10) {
-	// 			//If frame number is 10 go back to 1
-	// 			gl.frameno = 1;
-	// 		}
-	// 		timeCopy(&start, &end);
-	// 	}
-	// }
+	double diff;
+	while (true) {
+		//If an amount of time has passed, change the frame number.
+		clock_gettime(CLOCK_REALTIME, &end);
+		diff = timeDiff(&start, &end);
+		if (gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) {
+			// How fast the frame changes
+			if (diff >= 0.0625) {
+				// Enough time has passed
+				++gl.frameno;
+				if (gl.frameno > 10) {
+					//If frame number is 10 go back to 1
+					gl.frameno = 1;
+				}
+				timeCopy(&start, &end);
+			}
+		}
+	}
 	return (void*)0;
 }
 
@@ -458,7 +459,7 @@ int X11_wrapper::check_keys(XEvent *e)
 				if (g.state == STATE_PLAYER_SELECT) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
-					g.playtime = 30;
+					g.playtime = 15;
 				}
 				break;
 			case XK_r:
@@ -674,15 +675,15 @@ void physics()
 
     // Check if the player is on the box platform
 	if (g.players[0].pos[0] >= boxLeft && g.players[0].pos[0] <= boxRight && playerBottom <= boxTop && playerTop >= boxBottom) {
+		// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
+		// if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
+		// g.players[0].pos[0] = boxLeft;
+
 		// Centers the player on the platform and moves with it
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
     }
-
-	// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
-	// if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
-	// g.players[0].pos[0] = boxLeft;
 }
 
 void render()
