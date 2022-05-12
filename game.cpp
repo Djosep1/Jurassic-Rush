@@ -94,6 +94,7 @@ public:
 	float dir;
 	Flt gravity;
 	int frameno;
+	int show;
 	unsigned int texid;
 	unsigned int spriteid;
 	unsigned int psid;
@@ -101,15 +102,16 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		// xres = 640;
-		// yres = 480;
-		xres = 1200;
-		yres = 720;
+		xres = 640;
+		yres = 480;
+		//xres = 1200;
+		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.005f;
 		dir = 5.0f;
 		frameno = 0;
+		show = 0;
 	};
 } gl;
 
@@ -167,34 +169,29 @@ public:
 		lives = 3;
 		position = 0;
 	}
-	void move_right() {
-		if (gl.keys[XK_Right]) {
-			position = 0.0f;
-			players[0].pos[0] += 0.5f;
-		}
-		// position = 1.0f;
-		// players[0].pos[0] += 8.0;
-	}
-	void move_left() {
-		if (gl.keys[XK_Left]) {
+	void movement_controls() {
+		// Move Left
+		if (gl.keys[XK_Left] || gl.keys[XK_a]) {
 			position = -1.0f;
 			players[0].pos[0] -= 0.5f;
 		}
-		// position = -1.0f;
-		// players[0].pos[0] -= 8.0;
+		// Move Right
+		if (gl.keys[XK_Right] || gl.keys[XK_d]) {
+			position = 0.0f;
+			players[0].pos[0] += 0.5f;
+		}
+		// Player Jump
+		if (gl.keys[XK_space] == 1) {
+			players[0].vel[1] += 0.05f;
+		}
+		players[0].vel[1] -= gl.gravity;
+		players[0].pos[1] += players[0].vel[1];
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
 	}
 	void move_down() {
 		players[0].pos[1] -= 8.0;
-	}
-	void jump () {
-		if (gl.keys[XK_space] == 1) {
-			players[0].vel[1] += 0.05f;
-		}
-		players[0].vel[1] -= gl.gravity;
-		players[0].pos[1] += players[0].vel[1];
 	}
 } g;
 
@@ -441,35 +438,9 @@ int X11_wrapper::check_keys(XEvent *e)
 					restartGame();
 				}
 				break;
-
-			// Controls for Player 1
-			case XK_d:
-			case XK_Right:
-				if (g.state == STATE_PLAY) {
-					//Move sprite to the right
-					//g.move_right();
-				}
-				break;
-			case XK_a:
-			case XK_Left:
-				if (g.state == STATE_PLAY) {
-					//Move sprite to the left
-					//g.move_left();
-				}
-				break;
-			case XK_s:
-			case XK_Down:
-				if (g.state == STATE_PLAY) {
-					//Move sprite down
-					//g.move_down();
-				}
-				break;
-			case XK_w:
-			case XK_Up:
-				if (g.state == STATE_PLAY) {
-					//Move sprite up
-					//g.move_up();
-				}
+			case XK_b:
+				// Show Bounding Boxes
+				gl.show ^= 1;
 				break;
 
 			// Controls to quit game
@@ -606,9 +577,7 @@ void physics()
 	// Gravity
 	if (g.state == STATE_PLAY) {
 		// Movement Controls
-		g.jump();
-		g.move_left();
-		g.move_right();
+		g.movement_controls();
 	}
 
     // Check the Players Boundaries
@@ -635,16 +604,30 @@ void physics()
 	}
 
 	// Check if player is colliding with a box
-	if (g.players[0].pos[1] <= b.pos[0]) {
+	// Flt d0, d1, dist;
+	// for (int i = 0; i < g.boxes.size(); i++) {
+	// 	d0 = g.players[0].pos[0] - g.boxes[i].pos[0];
+	// 	d1 = g.players[0].pos[1] - g.boxes[i].pos[1];
+	// 	dist = sqrt(d0*d0 + d1*d1);
+	// 	if (dist < g.players[0].w + g.boxes[i].w) {
+	// 		g.players[0].pos[0] = g.boxes[i].pos[0] + g.boxes[i].w + g.players[0].w;
+	// 		g.players[0].pos[1] = g.boxes[i].pos[1] + g.boxes[i].h + g.players[0].h;
+	// 		g.players[0].vel[0] = 0.0;
+	// 		g.players[0].vel[1] = 0.0;
+	// 		g.score += 1;
+	//		g.boxes.erase(g.boxes.begin() + i);
+	// 	}
+	// }
 
-	}
+	// Collision Detection for the boxes
+	//b.pos[0] += b.dir;
 
-	// Collision Detection
-	b.pos[0] += b.dir;
+	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
 		b.pos[0] = (gl.xres-b.w);
 		b.dir = -b.dir;
 	}
+	// Collision with right side of screen
 	if (b.pos[0] <= b.w) {
 		b.pos[0] = b.w;
 		b.dir = -b.dir;
@@ -744,6 +727,18 @@ void render()
 		//Turn off Alpha Test
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_ALPHA_TEST);
+
+		if (gl.show) {
+			// Check the bounding box for the player
+			glColor3ub(255, 255, 0);
+			glBegin(GL_LINE_LOOP);
+				glVertex2f(-g.players[0].w, -g.players[0].h);
+				glVertex2f(-g.players[0].w,  g.players[0].h);
+				glVertex2f( g.players[0].w,  g.players[0].h);
+				glVertex2f( g.players[0].w, -g.players[0].h);
+			glEnd();
+		}
+
 		glPopMatrix();
 
 		// Draw Box
@@ -756,6 +751,17 @@ void render()
 			glVertex2f( b.w,  b.h);
 			glVertex2f( b.w, -b.h);
 		glEnd();
+
+		if (gl.show) {
+			// Check the bounding box for the box
+			glColor3ub(255, 255, 0); // Make it Yellow
+			glBegin(GL_LINE_LOOP);
+				glVertex2f(-b.w, -b.h);
+				glVertex2f(-b.w,  b.h);
+				glVertex2f( b.w,  b.h);
+				glVertex2f( b.w, -b.h);
+			glEnd();
+		}
 		glPopMatrix();
 
 		//Check for Game Over
