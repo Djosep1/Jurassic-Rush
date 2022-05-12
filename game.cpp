@@ -25,6 +25,7 @@ using namespace std;
 #include <cstring>
 #include <cmath>
 #include "fonts.h"
+#include "timers.h"
 
 typedef double Flt;
 struct Vector {
@@ -68,20 +69,20 @@ public:
 		}
 	}
 } 
-  img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
-  screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
-  ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
-  sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
-  sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
-  sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
-  intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
-//   img("pics/background.png"),
-//   screen("pics/Resolution_Screen.png"),
-//   ps("pics/Player_Screen.png"),
-//   sprite_idle("sprites/boy/idle.png"),
-//   sprite_run("sprites/boy/run.png"),
-//   sprite_jump("sprites/boy/jump.png"),
-//   intro("pics/Dungeon.png");
+//   img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
+//   screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
+//   ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
+//   sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
+//   sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
+//   sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
+//   intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
+  img("pics/background.png"),
+  screen("pics/Resolution_Screen.png"),
+  ps("pics/Player_Screen.png"),
+  sprite_idle("sprites/boy/idle.png"),
+  sprite_run("sprites/boy/run.png"),
+  sprite_jump("sprites/boy/jump.png"),
+  intro("pics/Dungeon.png");
 
 // Choose between a girl or boy player.
 Image player[2] = {"sprites/boy/run.png", "sprites/girl/run.png"};
@@ -201,9 +202,10 @@ public:
 	}
 	void movement_controls() {
 		// Move Left
+		Flt speedMult = 1.5;
 		if (gl.keys[XK_Left] || gl.keys[XK_a]) {
 			position = -1.0f;
-			players[0].pos[0] -= 1.0f;
+			players[0].pos[0] -= 1.0f * speedMult;
 		}
 		// Move Right
 		if (gl.keys[XK_Right] || gl.keys[XK_d]) {
@@ -290,27 +292,45 @@ void *spriteThread(void *arg)
 	return (void*)0;
 }
 
+double physicsRate = 1.0 / 120.0;
+const double applyphysicsRate = 1.0 / 60.0;
+const double oobillion = 1.0 / 1e9;
+struct timespec ptimeStart, ptimeCurrent;
+double applyPhysicsCountdown = 0.0;
+double phystimeSpan = 0.0;
+
+
 void applyPhysics()
 {
 	//-----------------------------------------------------------------------------
 	//Setup timers
-	const double physicsRate = 1.0 / 60.0;
+	//const double physicsRate = 1.0 / 60.0;
 	//const double oobillion = 1.0 / 1e9;
-	struct timespec timeStart, timeCurrent;
-	double physicsCountdown = 0.0;
-	double timeSpan = 0.0;
-	extern double timeDiff(struct timespec *start, struct timespec *end);
-	extern void timeCopy(struct timespec *dest, struct timespec *source);
+	//struct timespec timeStart, timeCurrent;
+	//struct timespec physStart, curr;
+	//double applyPhysicsCountdown = 0.0;
+	//static double physicsCountdown = 0.0;
+	//double timeSpan;
+	// extern double timeDiff(struct timespec *start, struct timespec *end);
+	// extern void timeCopy(struct timespec *dest, struct timespec *source);
 	//-----------------------------------------------------------------------------
+	static int getInitStart = 1;
+	if (getInitStart) {
+		clock_gettime(CLOCK_REALTIME, &ptimeStart);
+		getInitStart = 0;
+	}
 
-    clock_gettime(CLOCK_REALTIME, &timeCurrent);
-    timeSpan = timeDiff(&timeStart, &timeCurrent);
-    timeCopy(&timeStart, &timeCurrent);
-    physicsCountdown += timeSpan;
-    while(physicsCountdown >= physicsRate) {
+    clock_gettime(CLOCK_REALTIME, &ptimeCurrent);
+    phystimeSpan = timeDiff(&ptimeStart, &ptimeCurrent);
+    timeCopy(&ptimeStart, &ptimeCurrent);
+    applyPhysicsCountdown += phystimeSpan;
+	//printf("%f\n", applyPhysicsCountdown);
+    while(applyPhysicsCountdown >= physicsRate) {
         physics();
-        physicsCountdown -= physicsRate;
+		//printf("%f\n", applyPhysicsCountdown);
+        applyPhysicsCountdown -= physicsRate;
     }
+
 }
 
 int main()
@@ -338,10 +358,7 @@ int main()
 			}
 		}
 		//You can call physics a number of times to smooth out the process
-		physics();           //move things
-		physics();
-		physics();
-		physics();
+		applyPhysics();           //move things
 		render();            //draw things
 		x11.swapBuffers();   //make video memory visible
 		usleep(1000);        //pause to let X11 work better
