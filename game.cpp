@@ -188,6 +188,8 @@ public:
 		if (gl.keys[XK_space] == 1) {
 			players[0].vel[1] += 0.05f;
 		}
+		players[0].vel[1] -= gl.gravity;
+        players[0].pos[1] += players[0].vel[1];
 	}
 	void move_up() {
 		players[0].pos[1] += 8.0;
@@ -388,8 +390,8 @@ void X11_wrapper::check_mouse(XEvent *e)
 	if (e->type == ButtonPress) {
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
-			int y = gl.yres - e->xbutton.y;
-            int x = e->xbutton.x;
+			//int y = gl.yres - e->xbutton.y;
+            //int x = e->xbutton.x;
 			if (g.state == STATE_RESOLUTION) {
 				
 			}
@@ -596,10 +598,6 @@ void physics()
 	if (g.state == STATE_PLAY) {
 		// Movement Controls
 		g.movement_controls();
-
-		// Gravity
-		g.players[0].vel[1] -= gl.gravity;
-		g.players[0].pos[1] += g.players[0].vel[1];
 	}
 
     // Check the Players Boundaries
@@ -639,18 +637,42 @@ void physics()
 		b.dir = -b.dir;
 	}
 
-	// Player and Box Collision
-	Flt d0 = g.players[0].pos[0] - b.pos[0];
-	Flt d1 = g.players[0].pos[1] - b.pos[1];
-	Flt dist = sqrt(d0*d0 + d1*d1);
-	d0 /= dist;
-	d1 /= dist;
-	if (dist < g.players[0].h + b.h) {
-		g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
-		//g.players[0].vel[0] = 0.0;
-		g.players[0].vel[1] = 0.0;
-		//gl.gravity = 0;
-	}
+	// get the hitbox sizes of the player and the box platform
+    Flt boxLeft = b.pos[0] - b.w;
+    Flt boxRight = b.pos[0] + b.w;
+    Flt boxTop = b.pos[1] + b.h;
+    Flt boxBottom = b.pos[1] - b.h;
+
+    Flt playerLeft = g.players[0].pos[0] - g.players[0].w;
+    Flt playerRight = g.players[0].pos[0] + g.players[0].w;
+    Flt playerTop = g.players[0].pos[1] + g.players[0].h;
+    Flt playerBottom = g.players[0].pos[1] - g.players[0].h;
+
+    // Check if the player is on the box platform
+
+    if (g.players[0].pos[0] >= boxLeft && g.players[0].pos[0] <= boxRight && playerBottom <= boxTop && playerTop >= boxBottom) {
+        // if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
+        // if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
+        // g.players[0].pos[0] = boxLeft;
+        g.players[0].pos[1] = boxTop + g.players[0].h;
+        g.players[0].vel[1] = 0.0;
+    }
+
+    /*
+        // Check if player is colliding with a box
+        Flt d0 = g.players[0].pos[0] - b.pos[0];
+        Flt d1 = g.players[0].pos[1] - b.pos[1];
+        Flt dist = sqrt(d0 * d0 + d1 * d1);
+
+
+        if (dist <= g.players[0].w + b.w) {
+            // Player is colliding with a box
+            printf("Collision!\n");
+            g.players[0].pos[0] = b.pos[0] + b.w + g.players[0].w;
+            g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
+            g.players[0].vel[1] = 0.0;
+        }
+    */
 }
 
 void render()
