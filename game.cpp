@@ -111,10 +111,10 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		//xres = 640;
-		//yres = 480;
-		xres = 1200;
-		yres = 720;
+		xres = 640;
+		yres = 480;
+		//xres = 1200;
+		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.005f;
