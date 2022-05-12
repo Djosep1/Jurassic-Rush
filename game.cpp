@@ -14,17 +14,18 @@
 #include <iostream>
 #include <fstream>
 using namespace std;
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <GL/glx.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
 #include <cmath>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
-#include <GL/glx.h>
 #include "fonts.h"
-#include <pthread.h>
+
 
 typedef double Flt;
 struct Vector {
@@ -125,9 +126,17 @@ public:
     float w, h;
     unsigned int color;
     bool alive_or_dead;
+	float jump_height;
 	Flt mass;
 	Player() {
-		pos[0] = gl.xres/12;
+		pos[0] = gl.xres/10;
+		pos[1] = gl.yres/2;
+		vel[0] = 0.0f;
+		vel[1] = 0.0f;
+		jump_height = vel[1];
+	}
+	void reset() {
+		pos[0] = gl.xres/10;
 		pos[1] = gl.yres/2;
 		vel[0] = 0.0f;
 		vel[1] = 0.0f;
@@ -148,6 +157,10 @@ public:
 		pos[0] = 0.0f;	
 		pos[1] = gl.yres/4;
 		dir = 0.2f;
+	}
+	void reset() {
+		pos[0] = 0.0f;	
+		pos[1] = gl.yres/4;
 	}
 	void set_dimensions(int x, int y) {
 		w = (float)x * 0.10f;
@@ -186,6 +199,8 @@ public:
 		}
 		// Player Jump
 		if (gl.keys[XK_space] == 1) {
+			if (players->jump_height > 0.5f) 
+				players[0].vel[1] -= 0.05f;
 			players[0].vel[1] += 0.05f;
 		}
 		players[0].vel[1] -= gl.gravity;
@@ -230,7 +245,7 @@ void *spriteThread(void *arg)
 	// struct timespec start, end;
 	// extern double timeDiff(struct timespec *start, struct timespec *end);
 	// extern void timeCopy(struct timespec *dest, struct timespec *source);
-	//-----------------------------------------------------------------------------
+	// //-----------------------------------------------------------------------------
 	// clock_gettime(CLOCK_REALTIME, &start);
 	// double diff;
 	// while (true) {
@@ -269,8 +284,14 @@ int main()
 			x11.check_mouse(&e);
 			done = x11.check_keys(&e);
 		}
-		//You can call physics a number of times to smooth
-		//out the process
+		if (g.state == STATE_PLAY) {
+			// Check Countdown Timer
+			g.countdown = time(NULL) - g.starttime;
+			if (g.countdown > g.playtime) {
+				g.state = STATE_GAME_OVER;
+			}
+		}
+		//You can call physics a number of times to smooth out the process
 		physics();           //move things
 		render();            //draw things
 		x11.swapBuffers();   //make video memory visible
@@ -352,8 +373,8 @@ void X11_wrapper::reshape_window(int width, int height)
 	glMatrixMode(GL_PROJECTION); glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-	g.players[0].set_dimensions(gl.xres, gl.yres);
 
+	g.players[0].set_dimensions(gl.xres, gl.yres);
 	b.set_dimensions(gl.xres, gl.yres);
 }
 
@@ -437,7 +458,7 @@ int X11_wrapper::check_keys(XEvent *e)
 				if (g.state == STATE_PLAYER_SELECT) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
-					g.playtime = 10;
+					g.playtime = 30;
 				}
 				break;
 			case XK_r:
@@ -591,6 +612,8 @@ void restartGame()
 	g.score = 0;
 	g.lives = 3;
 	g.state = STATE_INTRO;
+	g.players[0].reset();
+	b.reset();
 }
 
 void physics()
@@ -620,12 +643,13 @@ void physics()
 	if (g.players[0].pos[1] <= g.players[0].h) {
 		g.players[0].pos[1] = g.players[0].h;
 		g.players[0].vel[1] = 0.0;
-		//g.lives -= 1;
+		g.lives -= 1;
 	}
 
 	// Collision Detection for the boxes
-	b.pos[0] += b.dir;
-
+	if (g.state == STATE_PLAY) {
+		b.pos[0] += b.dir;
+	}
 	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
 		b.pos[0] = (gl.xres-b.w);
@@ -637,42 +661,28 @@ void physics()
 		b.dir = -b.dir;
 	}
 
-	// get the hitbox sizes of the player and the box platform
-    Flt boxLeft = b.pos[0] - b.w;
-    Flt boxRight = b.pos[0] + b.w;
-    Flt boxTop = b.pos[1] + b.h;
+	// Get the hitbox sizes of the player and the box platform
+    Flt boxLeft   = b.pos[0] - b.w;
+    Flt boxRight  = b.pos[0] + b.w;
+    Flt boxTop    = b.pos[1] + b.h;
     Flt boxBottom = b.pos[1] - b.h;
 
-    Flt playerLeft = g.players[0].pos[0] - g.players[0].w;
-    Flt playerRight = g.players[0].pos[0] + g.players[0].w;
-    Flt playerTop = g.players[0].pos[1] + g.players[0].h;
+    // Flt playerLeft   = g.players[0].pos[0] - g.players[0].w;
+    // Flt playerRight  = g.players[0].pos[0] + g.players[0].w;
+    Flt playerTop    = g.players[0].pos[1] + g.players[0].h;
     Flt playerBottom = g.players[0].pos[1] - g.players[0].h;
 
     // Check if the player is on the box platform
-
-    if (g.players[0].pos[0] >= boxLeft && g.players[0].pos[0] <= boxRight && playerBottom <= boxTop && playerTop >= boxBottom) {
-        // if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
-        // if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
-        // g.players[0].pos[0] = boxLeft;
-        g.players[0].pos[1] = boxTop + g.players[0].h;
+	if (g.players[0].pos[0] >= boxLeft && g.players[0].pos[0] <= boxRight && playerBottom <= boxTop && playerTop >= boxBottom) {
+		// Centers the player on the platform and moves with it
+		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
+		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
     }
 
-    /*
-        // Check if player is colliding with a box
-        Flt d0 = g.players[0].pos[0] - b.pos[0];
-        Flt d1 = g.players[0].pos[1] - b.pos[1];
-        Flt dist = sqrt(d0 * d0 + d1 * d1);
-
-
-        if (dist <= g.players[0].w + b.w) {
-            // Player is colliding with a box
-            printf("Collision!\n");
-            g.players[0].pos[0] = b.pos[0] + b.w + g.players[0].w;
-            g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
-            g.players[0].vel[1] = 0.0;
-        }
-    */
+	// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
+	// if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
+	// g.players[0].pos[0] = boxLeft;
 }
 
 void render()
@@ -760,12 +770,7 @@ void render()
 	}
 
 	if (g.state == STATE_PLAY) {
-		// Show the Play screen
-		r.bot = gl.yres - 20;
-		r.left = 10;
-		r.center = 0;
-		ggprint8b(&r, 30, 0x00ffffff, "Score: %i", g.score);
-		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);		
+		// Show the Play screen	
 
 		//Initialize Texture Map
 		glColor3ub(255, 255, 255); //Make it brighter
@@ -778,6 +783,24 @@ void render()
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
+
+		// Show the Score Box
+		glColor4ub(0, 0, 0, 120); //Make it brighter
+		glPushMatrix();
+		glTranslatef(gl.xres/99, gl.yres * 0.99, 0.0f);
+		glBegin(GL_QUADS);
+			glVertex2f(-60, -50);
+			glVertex2f(-60,  50);
+			glVertex2f( 60,  50);
+			glVertex2f( 60, -50);
+		glEnd();
+		glPopMatrix();
+
+		r.bot = gl.yres - 20;
+		r.left = 10;
+		r.center = 0;
+		ggprint8b(&r, 20, 0x00ffffff, "Score: %i", g.score);
+		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);	
 
 		// Draw Player
 		glPushMatrix();
