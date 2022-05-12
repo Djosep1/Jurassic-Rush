@@ -25,7 +25,7 @@ using namespace std;
 #include <cstring>
 #include <cmath>
 #include "fonts.h"
-
+#include "timers.h"
 
 typedef double Flt;
 struct Vector {
@@ -68,7 +68,15 @@ public:
 			unlink(newfile);
 		}
 	}
-} img("pics/background.png"),
+} 
+//   img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
+//   screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
+//   ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
+//   sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
+//   sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
+//   sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
+//   intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
+  img("pics/background.png"),
   screen("pics/Resolution_Screen.png"),
   ps("pics/Player_Screen.png"),
   sprite_idle("sprites/boy/idle.png"),
@@ -111,14 +119,14 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		//xres = 640;
-		//yres = 480;
-		xres = 1200;
-		yres = 720;
+		xres = 640;
+		yres = 480;
+		//xres = 1200;
+		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
-		gravity = 0.005f;
-		dir = 5.0f;
+		gravity = 0.5f;
+		dir = 100.0f;
 		frameno = 0;
 		show = 0;
 	};
@@ -189,25 +197,26 @@ public:
 		// Initialize game state
 		state = STATE_INTRO;
 		score = 0;
-		lives = 3;
+		lives = 1;
 		position = 0;
 	}
 	void movement_controls() {
 		// Move Left
+		Flt speedMult = 1.5;
 		if (gl.keys[XK_Left] || gl.keys[XK_a]) {
 			position = -1.0f;
-			players[0].pos[0] -= 0.5f;
+			players[0].pos[0] -= 1.0f * speedMult;
 		}
 		// Move Right
 		if (gl.keys[XK_Right] || gl.keys[XK_d]) {
 			position = 0.0f;
-			players[0].pos[0] += 0.5f;
+			players[0].pos[0] += 1.0f;
 		}
 		// Player Jump
 		if (gl.keys[XK_space] == 1) {
 			if (players->jump_height > 0.5f) 
 				players[0].vel[1] -= 0.05f;
-			players[0].vel[1] += 0.02f;
+			players[0].vel[1] += 1.0f;
 			onPlatform = false;
 		}
 		players[0].vel[1] -= gl.gravity;
@@ -252,7 +261,7 @@ void *spriteThread(void *arg)
 	struct timespec start, end;
 	extern double timeDiff(struct timespec *start, struct timespec *end);
 	extern void timeCopy(struct timespec *dest, struct timespec *source);
-	// //-----------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------
 	clock_gettime(CLOCK_REALTIME, &start);
 	double diff;
 	while (true) {
@@ -283,6 +292,47 @@ void *spriteThread(void *arg)
 	return (void*)0;
 }
 
+double physicsRate = 1.0 / 120.0;
+const double applyphysicsRate = 1.0 / 60.0;
+const double oobillion = 1.0 / 1e9;
+struct timespec ptimeStart, ptimeCurrent;
+double applyPhysicsCountdown = 0.0;
+double phystimeSpan = 0.0;
+
+
+void applyPhysics()
+{
+	//-----------------------------------------------------------------------------
+	//Setup timers
+	//const double physicsRate = 1.0 / 60.0;
+	//const double oobillion = 1.0 / 1e9;
+	//struct timespec timeStart, timeCurrent;
+	//struct timespec physStart, curr;
+	//double applyPhysicsCountdown = 0.0;
+	//static double physicsCountdown = 0.0;
+	//double timeSpan;
+	// extern double timeDiff(struct timespec *start, struct timespec *end);
+	// extern void timeCopy(struct timespec *dest, struct timespec *source);
+	//-----------------------------------------------------------------------------
+	static int getInitStart = 1;
+	if (getInitStart) {
+		clock_gettime(CLOCK_REALTIME, &ptimeStart);
+		getInitStart = 0;
+	}
+
+    clock_gettime(CLOCK_REALTIME, &ptimeCurrent);
+    phystimeSpan = timeDiff(&ptimeStart, &ptimeCurrent);
+    timeCopy(&ptimeStart, &ptimeCurrent);
+    applyPhysicsCountdown += phystimeSpan;
+	//printf("%f\n", applyPhysicsCountdown);
+    while(applyPhysicsCountdown >= physicsRate) {
+        physics();
+		//printf("%f\n", applyPhysicsCountdown);
+        applyPhysicsCountdown -= physicsRate;
+    }
+
+}
+
 int main()
 {
 	//Start the thread
@@ -306,9 +356,12 @@ int main()
 			if (g.countdown > g.playtime) {
 				g.state = STATE_GAME_OVER;
 			}
+			if (g.players[0].pos[1] <= g.players[0].h) {
+				g.lives -= 1;
+			}
 		}
 		//You can call physics a number of times to smooth out the process
-		physics();           //move things
+		applyPhysics();           //move things
 		render();            //draw things
 		x11.swapBuffers();   //make video memory visible
 		usleep(1000);        //pause to let X11 work better
@@ -662,7 +715,7 @@ void restartGame()
 {
 	//Reset the game
 	g.score = 0;
-	g.lives = 3;
+	g.lives = 1;
 	g.state = STATE_INTRO;
 	g.players[0].reset();
 	b.reset();
@@ -695,7 +748,7 @@ void physics()
 	if (g.players[0].pos[1] <= g.players[0].h) {
 		g.players[0].pos[1] = g.players[0].h;
 		g.players[0].vel[1] = 0.0;
-		g.lives -= 1;
+		//g.lives -= 1;
 	}
 
 	// Collision Detection for the boxes
@@ -735,7 +788,7 @@ void physics()
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
-		g.score += 0.001;
+		g.score += 0.01;
     }
 }
 
