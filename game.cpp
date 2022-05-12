@@ -125,7 +125,7 @@ public:
 		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
-		gravity = 0.5f;
+		gravity = 0.05f;
 		dir = 100.0f;
 		frameno = 0;
 		show = 0;
@@ -726,6 +726,7 @@ void physics()
 	if (g.state == STATE_PLAY) {
 		// Movement Controls
 		g.movement_controls();
+		b.pos[0] += b.dir;
 	}
 
     // Check the Players Boundaries
@@ -750,8 +751,6 @@ void physics()
 		g.players[0].vel[1] = 0.0;
 		//g.lives -= 1;
 	}
-	
-	b.pos[0] += b.dir;
 	
 	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
