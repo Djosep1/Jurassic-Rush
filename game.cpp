@@ -178,11 +178,12 @@ public:
 	Player players[2];
 	Box boxes[5];
 	int state;
-	int score;
+	float score;
 	int lives;
 	int playtime;
 	int countdown;
 	int starttime;
+	bool onPlatform = false;
 	float position;
 	Game() {
 		// Initialize game state
@@ -207,6 +208,7 @@ public:
 			if (players->jump_height > 0.5f) 
 				players[0].vel[1] -= 0.05f;
 			players[0].vel[1] += 0.02f;
+			onPlatform = false;
 		}
 		players[0].vel[1] -= gl.gravity;
         players[0].pos[1] += players[0].vel[1];
@@ -251,7 +253,7 @@ void *spriteThread(void *arg)
 	extern double timeDiff(struct timespec *start, struct timespec *end);
 	extern void timeCopy(struct timespec *dest, struct timespec *source);
 	// //-----------------------------------------------------------------------------
-	// clock_gettime(CLOCK_REALTIME, &start);
+	clock_gettime(CLOCK_REALTIME, &start);
 	double diff;
 	while (true) {
 		//If an amount of time has passed, change the frame number.
@@ -733,6 +735,7 @@ void physics()
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
+		g.score += 0.001;
     }
 }
 
@@ -755,6 +758,13 @@ void render()
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
+
+		r.bot = gl.yres - 20;
+		r.left = 10;
+		r.center = 0;
+		ggprint8b(&r, 20, 0x00ffffff, "Press WASD or arrow keys to move");
+		ggprint8b(&r, 20, 0x00ffffff, "Press space to jump");
+		ggprint8b(&r, 20 , 0x00ffffff, "Goal is to stay on the platform as long as possible");
 		return;
 	}
 
@@ -852,8 +862,8 @@ void render()
 		r.bot = gl.yres - 20;
 		r.left = 10;
 		r.center = 0;
-		ggprint8b(&r, 20, 0x00ffffff, "Score: %i", g.score);
-		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);	
+		ggprint8b(&r, 20, 0x00ffffff, "Score: %0.0f", g.score);
+		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);   
 
 		// Draw Player
 		if (gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) {
