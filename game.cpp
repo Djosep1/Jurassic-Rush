@@ -26,7 +26,6 @@ using namespace std;
 #include <cmath>
 #include "fonts.h"
 
-
 typedef double Flt;
 struct Vector {
     float x, y, z;
@@ -68,13 +67,21 @@ public:
 			unlink(newfile);
 		}
 	}
-} img("pics/background.png"),
-  screen("pics/Resolution_Screen.png"),
-  ps("pics/Player_Screen.png"),
-  sprite_idle("sprites/boy/idle.png"),
-  sprite_run("sprites/boy/run.png"),
-  sprite_jump("sprites/boy/jump.png"),
-  intro("pics/Dungeon.png");
+} 
+  img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
+  screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
+  ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
+  sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
+  sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
+  sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
+  intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
+//   img("pics/background.png"),
+//   screen("pics/Resolution_Screen.png"),
+//   ps("pics/Player_Screen.png"),
+//   sprite_idle("sprites/boy/idle.png"),
+//   sprite_run("sprites/boy/run.png"),
+//   sprite_jump("sprites/boy/jump.png"),
+//   intro("pics/Dungeon.png");
 
 // Choose between a girl or boy player.
 Image player[2] = {"sprites/boy/run.png", "sprites/girl/run.png"};
@@ -117,8 +124,8 @@ public:
 		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
-		gravity = 0.005f;
-		dir = 5.0f;
+		gravity = 0.5f;
+		dir = 100.0f;
 		frameno = 0;
 		show = 0;
 	};
@@ -196,18 +203,18 @@ public:
 		// Move Left
 		if (gl.keys[XK_Left] || gl.keys[XK_a]) {
 			position = -1.0f;
-			players[0].pos[0] -= 0.5f;
+			players[0].pos[0] -= 1.0f;
 		}
 		// Move Right
 		if (gl.keys[XK_Right] || gl.keys[XK_d]) {
 			position = 0.0f;
-			players[0].pos[0] += 0.5f;
+			players[0].pos[0] += 1.0f;
 		}
 		// Player Jump
 		if (gl.keys[XK_space] == 1) {
 			if (players->jump_height > 0.5f) 
 				players[0].vel[1] -= 0.05f;
-			players[0].vel[1] += 0.02f;
+			players[0].vel[1] += 1.0f;
 			onPlatform = false;
 		}
 		players[0].vel[1] -= gl.gravity;
@@ -252,7 +259,7 @@ void *spriteThread(void *arg)
 	struct timespec start, end;
 	extern double timeDiff(struct timespec *start, struct timespec *end);
 	extern void timeCopy(struct timespec *dest, struct timespec *source);
-	// //-----------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------
 	clock_gettime(CLOCK_REALTIME, &start);
 	double diff;
 	while (true) {
@@ -283,6 +290,29 @@ void *spriteThread(void *arg)
 	return (void*)0;
 }
 
+void applyPhysics()
+{
+	//-----------------------------------------------------------------------------
+	//Setup timers
+	const double physicsRate = 1.0 / 60.0;
+	//const double oobillion = 1.0 / 1e9;
+	struct timespec timeStart, timeCurrent;
+	double physicsCountdown = 0.0;
+	double timeSpan = 0.0;
+	extern double timeDiff(struct timespec *start, struct timespec *end);
+	extern void timeCopy(struct timespec *dest, struct timespec *source);
+	//-----------------------------------------------------------------------------
+
+    clock_gettime(CLOCK_REALTIME, &timeCurrent);
+    timeSpan = timeDiff(&timeStart, &timeCurrent);
+    timeCopy(&timeStart, &timeCurrent);
+    physicsCountdown += timeSpan;
+    while(physicsCountdown >= physicsRate) {
+        physics();
+        physicsCountdown -= physicsRate;
+    }
+}
+
 int main()
 {
 	//Start the thread
@@ -309,6 +339,9 @@ int main()
 		}
 		//You can call physics a number of times to smooth out the process
 		physics();           //move things
+		physics();
+		physics();
+		physics();
 		render();            //draw things
 		x11.swapBuffers();   //make video memory visible
 		usleep(1000);        //pause to let X11 work better
@@ -735,10 +768,7 @@ void physics()
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
-		if (g.state == STATE_PLAY) {
-			g.score += 0.001;
-		}
-		
+		g.score += 0.001;
     }
 }
 
