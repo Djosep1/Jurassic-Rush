@@ -198,7 +198,7 @@ public:
 		state = STATE_INTRO;
 		score = 0;
 		lives = 1;
-		position = 0;
+		position = 0.0f;
 	}
 	void movement_controls() {
 		// Move Left
