@@ -71,7 +71,9 @@ public:
 } img("pics/background.png"),
   screen("pics/Resolution_Screen.png"),
   ps("pics/Player_Screen.png"),
-  sprite("sprites/boy/run.png"),
+  sprite_idle("sprites/boy/idle.png"),
+  sprite_run("sprites/boy/run.png"),
+  sprite_jump("sprites/boy/jump.png"),
   intro("pics/Dungeon.png");
 
 // Choose between a girl or boy player.
@@ -98,11 +100,14 @@ public:
 	Flt gravity;
 	int frameno;
 	int show;
+	// Image ID's
 	unsigned int texid;
-	unsigned int spriteid;
 	unsigned int psid;
 	unsigned int introid;
 	unsigned int screenid;
+	unsigned int sprite_idleID;
+	unsigned int sprite_runID;
+	unsigned int sprite_jumpID;
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
@@ -201,7 +206,7 @@ public:
 		if (gl.keys[XK_space] == 1) {
 			if (players->jump_height > 0.5f) 
 				players[0].vel[1] -= 0.05f;
-			players[0].vel[1] += 0.05f;
+			players[0].vel[1] += 0.02f;
 		}
 		players[0].vel[1] -= gl.gravity;
         players[0].pos[1] += players[0].vel[1];
@@ -254,11 +259,19 @@ void *spriteThread(void *arg)
 		diff = timeDiff(&start, &end);
 		if (gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) {
 			// How fast the frame changes
-			if (diff >= 0.0625) {
+			if (diff >= 0.2225) {
 				// Enough time has passed
 				++gl.frameno;
 				if (gl.frameno > 10) {
 					//If frame number is 10 go back to 1
+					gl.frameno = 1;
+				}
+				timeCopy(&start, &end);
+			}
+		} else if (gl.keys[XK_space]) {
+			if (diff >= 0.2625) {
+				++gl.frameno;
+				if (gl.frameno > 10) {
 					gl.frameno = 1;
 				}
 				timeCopy(&start, &end);
@@ -451,6 +464,7 @@ int X11_wrapper::check_keys(XEvent *e)
 			case XK_Return:
 				if (g.state == STATE_INTRO) {
 					g.state = STATE_PLAYER_SELECT;
+					//g.state = STATE_PLAY;
 				}
 				break;
 			case XK_1:
@@ -488,46 +502,31 @@ int X11_wrapper::check_keys(XEvent *e)
 	return 0;
 }
 
-unsigned char *buildAlphaData(Image *img)
-{
-	//Add 4th component to an RGB stream...
-	//RGBA
-	//When you do this, OpenGL is able to use the A component to determine
-	//transparency information.
-	//It is used in this application to erase parts of a texture-map from view.
-	int i;
-	int a,b,c;
-	unsigned char *newdata, *ptr;
-	unsigned char *data = (unsigned char *)img->data;
-	newdata = (unsigned char *)malloc(img->width * img->height * 4);
-	ptr = newdata;
-	for (i=0; i<img->width * img->height * 3; i+=3) {
-		a = *(data+0);
-		b = *(data+1);
-		c = *(data+2);
-		*(ptr+0) = a;
-		*(ptr+1) = b;
-		*(ptr+2) = c;
-		//-----------------------------------------------
-		//get largest color component...
-		//*(ptr+3) = (unsigned char)((
-		//		(int)*(ptr+0) +
-		//		(int)*(ptr+1) +
-		//		(int)*(ptr+2)) / 3);
-		//d = a;
-		//if (b >= a && b >= c) d = b;
-		//if (c >= a && c >= b) d = c;
-		//*(ptr+3) = d;
-		//-----------------------------------------------
-		//this code optimizes the commented code above.
-		//code contributed by student: Chris Smith
-		//
-		*(ptr+3) = (a != 255 && b != 255 && c );
-		//-----------------------------------------------
-		ptr += 4;
-		data += 3;
+void sprite_image(Image sprite, unsigned int sprite_action, unsigned char *data2) {
+	// Sprite Image
+	data2 = new unsigned char[sprite.width*sprite.height*4];
+	for (int i = 0; i < sprite.height; i++) {
+		for (int j = 0; j < sprite.width; j++) {
+			int offset  = i*sprite.width*3 + j*3;
+			int offset2 = i*sprite.width*4 + j*4;
+
+			//data2 is using 4 elements of RGB + Alpha
+			data2[offset2+0] = sprite.data[offset+0];
+			data2[offset2+1] = sprite.data[offset+1];
+			data2[offset2+2] = sprite.data[offset+2];
+			data2[offset2+3] = ((unsigned char)sprite.data[offset+0] != 153 && 
+								(unsigned char)sprite.data[offset+1] != 153 && 
+								(unsigned char)sprite.data[offset+2] != 153);
+		}
 	}
-	return newdata;
+
+	glGenTextures(1, &sprite_action);
+	glBindTexture(GL_TEXTURE_2D, sprite_action);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite.width, sprite.height, 0,
+									GL_RGBA, GL_UNSIGNED_BYTE, data2);
+	delete [] data2;
 }
 
 void init_opengl(void)
@@ -577,30 +576,80 @@ void init_opengl(void)
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, ps.width, ps.height, 0,
 							GL_RGB, GL_UNSIGNED_BYTE, ps.data);
 
-	// Sprite Image
-	unsigned char *data2 = new unsigned char[sprite.width*sprite.height*4];
-	for (int i = 0; i < sprite.height; i++) {
-		for (int j = 0; j < sprite.width; j++) {
-			int offset  = i*sprite.width*3 + j*3;
-			int offset2 = i*sprite.width*4 + j*4;
+	// Sprite Idle Image 
+	unsigned char *data2 = new unsigned char[sprite_idle.width*sprite_idle.height*4];
+	for (int i = 0; i < sprite_idle.height; i++) {
+		for (int j = 0; j < sprite_idle.width; j++) {
+			int offset  = i*sprite_idle.width*3 + j*3;
+			int offset2 = i*sprite_idle.width*4 + j*4;
 
 			//data2 is using 4 elements of RGB + Alpha
-			data2[offset2+0] = sprite.data[offset+0];
-			data2[offset2+1] = sprite.data[offset+1];
-			data2[offset2+2] = sprite.data[offset+2];
-			data2[offset2+3] = ((unsigned char)sprite.data[offset+0] != 153 && 
-								(unsigned char)sprite.data[offset+1] != 153 && 
-								(unsigned char)sprite.data[offset+2] != 153);
+			data2[offset2+0] = sprite_idle.data[offset+0];
+			data2[offset2+1] = sprite_idle.data[offset+1];
+			data2[offset2+2] = sprite_idle.data[offset+2];
+			data2[offset2+3] = ((unsigned char)sprite_idle.data[offset+0] != 153 && 
+								(unsigned char)sprite_idle.data[offset+1] != 153 && 
+								(unsigned char)sprite_idle.data[offset+2] != 153);
 		}
 	}
 
-	glGenTextures(1, &gl.spriteid);
-	glBindTexture(GL_TEXTURE_2D, gl.spriteid);
+	glGenTextures(1, &gl.sprite_idleID);
+	glBindTexture(GL_TEXTURE_2D, gl.sprite_idleID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite.width, sprite.height, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite_idle.width, sprite_idle.height, 0,
 									GL_RGBA, GL_UNSIGNED_BYTE, data2);
 	delete [] data2;
+
+	// Sprite Run Image 
+	unsigned char *data3 = new unsigned char[sprite_run.width*sprite_run.height*4];
+	for (int i = 0; i < sprite_run.height; i++) {
+		for (int j = 0; j < sprite_run.width; j++) {
+			int offset  = i*sprite_run.width*3 + j*3;
+			int offset2 = i*sprite_run.width*4 + j*4;
+
+			//data2 is using 4 elements of RGB + Alpha
+			data3[offset2+0] = sprite_run.data[offset+0];
+			data3[offset2+1] = sprite_run.data[offset+1];
+			data3[offset2+2] = sprite_run.data[offset+2];
+			data3[offset2+3] = ((unsigned char)sprite_run.data[offset+0] != 153 && 
+								(unsigned char)sprite_run.data[offset+1] != 153 && 
+								(unsigned char)sprite_run.data[offset+2] != 153);
+		}
+	}
+
+	glGenTextures(1, &gl.sprite_runID);
+	glBindTexture(GL_TEXTURE_2D, gl.sprite_runID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite_run.width, sprite_run.height, 0,
+									GL_RGBA, GL_UNSIGNED_BYTE, data3);
+	delete [] data3;
+
+	// Sprite Run Image 
+	unsigned char *data4 = new unsigned char[sprite_jump.width*sprite_jump.height*4];
+	for (int i = 0; i < sprite_jump.height; i++) {
+		for (int j = 0; j < sprite_jump.width; j++) {
+			int offset  = i*sprite_jump.width*3 + j*3;
+			int offset2 = i*sprite_jump.width*4 + j*4;
+
+			//data2 is using 4 elements of RGB + Alpha
+			data4[offset2+0] = sprite_jump.data[offset+0];
+			data4[offset2+1] = sprite_jump.data[offset+1];
+			data4[offset2+2] = sprite_jump.data[offset+2];
+			data4[offset2+3] = ((unsigned char)sprite_jump.data[offset+0] != 153 && 
+								(unsigned char)sprite_jump.data[offset+1] != 153 && 
+								(unsigned char)sprite_jump.data[offset+2] != 153);
+		}
+	}
+
+	glGenTextures(1, &gl.sprite_jumpID);
+	glBindTexture(GL_TEXTURE_2D, gl.sprite_jumpID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sprite_jump.width, sprite_jump.height, 0,
+									GL_RGBA, GL_UNSIGNED_BYTE, data4);
+	delete [] data4;
 
 	//Set the dimensions of the sprite and box
 	g.players[0].set_dimensions(gl.xres, gl.yres);
@@ -675,7 +724,8 @@ void physics()
 
     // Check if the player is on the box platform
 	if (g.players[0].pos[0] >= boxLeft && g.players[0].pos[0] <= boxRight && playerBottom <= boxTop && playerTop >= boxBottom) {
-		// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
+		// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || 
+		// (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
 		// if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
 		// g.players[0].pos[0] = boxLeft;
 
@@ -685,6 +735,8 @@ void physics()
         g.players[0].vel[1] = 0.0;
     }
 }
+
+void sprite_id(unsigned int);
 
 void render()
 {	
@@ -804,57 +856,13 @@ void render()
 		ggprint8b(&r, 0, 0x00ffff00, "Time: %i", g.playtime - g.countdown);	
 
 		// Draw Player
-		glPushMatrix();
-		glTranslatef(g.players[0].pos[0], g.players[0].pos[1], 0.0f);
-
-		//Set Alpha Test
-		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
-		glEnable(GL_ALPHA_TEST);
-
-		//Transparent if alpha value is greater than 0.0
-		glAlphaFunc(GL_GREATER, 0.0f);
-
-		//Set 4-channels of color intensity
-		glColor4ub(255, 255, 255, 255);
-
-		glBindTexture(GL_TEXTURE_2D, gl.spriteid);
-
-		//Make texture coordinates based on frame number
-		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f; // Column
-		float tx2 = tx1 + 0.2f;
-		float ty1 = 0.0f + (float)((gl.frameno-1) / 2) * 0.5f; // Row
-		float ty2 = ty1 + 0.5f;
-
-		//Change x-coords so that the bee flips when he turns
-		if (g.position < 0.0) {
-			float tmp = tx2;
-			tx2 = tx1;
-			tx1 = tmp;
+		if (gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) {
+			sprite_id(gl.sprite_runID);
+		} else if (gl.keys[XK_space] == 1) {
+			sprite_id(gl.sprite_jumpID);
+		} else {
+			sprite_id(gl.sprite_idleID);
 		}
-
-		glBegin(GL_QUADS);
-			glTexCoord2f(tx1, ty2); glVertex2f(-g.players[0].w, -g.players[0].h);
-			glTexCoord2f(tx1, ty1); glVertex2f(-g.players[0].w,  g.players[0].h);
-			glTexCoord2f(tx2, ty1); glVertex2f( g.players[0].w,  g.players[0].h);
-			glTexCoord2f(tx2, ty2); glVertex2f( g.players[0].w, -g.players[0].h);
-		glEnd();
-
-		//Turn off Alpha Test
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glDisable(GL_ALPHA_TEST);
-
-		if (gl.show) {
-			// Check the bounding box for the player
-			glColor3ub(255, 255, 0);
-			glBegin(GL_LINE_LOOP);
-				glVertex2f(-g.players[0].w, -g.players[0].h);
-				glVertex2f(-g.players[0].w,  g.players[0].h);
-				glVertex2f( g.players[0].w,  g.players[0].h);
-				glVertex2f( g.players[0].w, -g.players[0].h);
-			glEnd();
-		}
-
-		glPopMatrix();
 
 		// Draw Box
 		glPushMatrix();
@@ -899,6 +907,60 @@ void render()
 	}
 }
 
+void sprite_id(unsigned int id) {
+	// Draw Player
+		glPushMatrix();
+		glTranslatef(g.players[0].pos[0], g.players[0].pos[1], 0.0f);
+
+		//Set Alpha Test
+		//https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glAlphaFunc.xml
+		glEnable(GL_ALPHA_TEST);
+
+		//Transparent if alpha value is greater than 0.0
+		glAlphaFunc(GL_GREATER, 0.0f);
+
+		//Set 4-channels of color intensity
+		glColor4ub(255, 255, 255, 255);
+
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		//Make texture coordinates based on frame number
+		float tx1 = 0.0f + (float)((gl.frameno-1) % 5) * 0.2f; // Column
+		float tx2 = tx1 + 0.2f;
+		float ty1 = 0.0f + (float)((gl.frameno-1) / 2) * 0.5f; // Row
+		float ty2 = ty1 + 0.5f;
+
+		//Change x-coords so that the bee flips when he turns
+		if (g.position < 0.0) {
+			float tmp = tx2;
+			tx2 = tx1;
+			tx1 = tmp;
+		}
+
+		glBegin(GL_QUADS);
+			glTexCoord2f(tx1, ty2); glVertex2f(-g.players[0].w, -g.players[0].h);
+			glTexCoord2f(tx1, ty1); glVertex2f(-g.players[0].w,  g.players[0].h);
+			glTexCoord2f(tx2, ty1); glVertex2f( g.players[0].w,  g.players[0].h);
+			glTexCoord2f(tx2, ty2); glVertex2f( g.players[0].w, -g.players[0].h);
+		glEnd();
+
+		//Turn off Alpha Test
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_ALPHA_TEST);
+
+		if (gl.show) {
+			// Check the bounding box for the player
+			glColor3ub(255, 255, 0);
+			glBegin(GL_LINE_LOOP);
+				glVertex2f(-g.players[0].w, -g.players[0].h);
+				glVertex2f(-g.players[0].w,  g.players[0].h);
+				glVertex2f( g.players[0].w,  g.players[0].h);
+				glVertex2f( g.players[0].w, -g.players[0].h);
+			glEnd();
+		}
+
+		glPopMatrix();
+}
 
 
 
