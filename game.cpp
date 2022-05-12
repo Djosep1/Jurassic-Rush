@@ -111,10 +111,10 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		xres = 640;
-		yres = 480;
-		//xres = 1200;
-		//yres = 720;
+		//xres = 640;
+		//yres = 480;
+		xres = 1200;
+		yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.005f;
@@ -911,7 +911,7 @@ void render()
 		r.left = gl.xres / 2;
 		r.center = 1;
 		ggprint8b(&r, 20, 0x00ffffff, "GAME OVER");
-		ggprint8b(&r, 30, 0x00ff0000, "Your score: %i", g.score);
+		ggprint8b(&r, 30, 0x00ff0000, "Your score: %0.0f", g.score);
 		ggprint8b(&r, 0, 0x00fff000, "Press r to restart");		
 		return;
 	}
