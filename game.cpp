@@ -68,6 +68,7 @@ public:
 		}
 	}
 } img("pics/background.png"),
+  screen("pics/Resolution_Screen.png"),
   ps("pics/Player_Screen.png"),
   sprite("sprites/boy/run.png"),
   intro("pics/Dungeon.png");
@@ -80,6 +81,7 @@ enum {
 	STATE_INTRO,
 	STATE_INSTRUCTIONS,
 	STATE_PLAYER_SELECT,
+	STATE_RESOLUTION,
 	STATE_PAUSE,
 	STATE_PLAY,
 	STATE_GAME_OVER
@@ -99,13 +101,14 @@ public:
 	unsigned int spriteid;
 	unsigned int psid;
 	unsigned int introid;
+	unsigned int screenid;
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		xres = 640;
-		yres = 480;
-		//xres = 1200;
-		//yres = 720;
+		//xres = 640;
+		//yres = 480;
+		xres = 1200;
+		yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.005f;
@@ -155,6 +158,7 @@ public:
 class Game {
 public:
 	Player players[2];
+	Box boxes[1];
 	int state;
 	int score;
 	int lives;
@@ -386,8 +390,11 @@ void X11_wrapper::check_mouse(XEvent *e)
 	if (e->type == ButtonPress) {
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
-			//int y = gl.yres - e->xbutton.y;
-            //int x = e->xbutton.x;  
+			int y = gl.yres - e->xbutton.y;
+            int x = e->xbutton.x;
+			if (g.state == STATE_RESOLUTION) {
+				
+			}
 			return;
 		}
 		if (e->xbutton.button==3) {
@@ -441,6 +448,12 @@ int X11_wrapper::check_keys(XEvent *e)
 			case XK_b:
 				// Show Bounding Boxes
 				gl.show ^= 1;
+				break;
+			case XK_l:
+				// Show Resolution Screen
+				if (g.state == STATE_INTRO) {
+					g.state = STATE_RESOLUTION;
+				}
 				break;
 
 			// Controls to quit game
@@ -517,6 +530,14 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, intro.width, intro.height, 0,
 							GL_RGB, GL_UNSIGNED_BYTE, intro.data);
+
+	// Resolution Image
+	glGenTextures(1, &gl.screenid);
+	glBindTexture(GL_TEXTURE_2D, gl.screenid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, screen.width, screen.height, 0,
+							GL_RGB, GL_UNSIGNED_BYTE, screen.data);
 
 	//Background Image
 	glGenTextures(1, &gl.texid);
@@ -604,23 +625,19 @@ void physics()
 	}
 
 	// Check if player is colliding with a box
-	// Flt d0, d1, dist;
-	// for (int i = 0; i < g.boxes.size(); i++) {
-	// 	d0 = g.players[0].pos[0] - g.boxes[i].pos[0];
-	// 	d1 = g.players[0].pos[1] - g.boxes[i].pos[1];
-	// 	dist = sqrt(d0*d0 + d1*d1);
-	// 	if (dist < g.players[0].w + g.boxes[i].w) {
-	// 		g.players[0].pos[0] = g.boxes[i].pos[0] + g.boxes[i].w + g.players[0].w;
-	// 		g.players[0].pos[1] = g.boxes[i].pos[1] + g.boxes[i].h + g.players[0].h;
-	// 		g.players[0].vel[0] = 0.0;
-	// 		g.players[0].vel[1] = 0.0;
-	// 		g.score += 1;
-	//		g.boxes.erase(g.boxes.begin() + i);
-	// 	}
-	// }
+	Flt d0 = g.players[0].pos[0] - b.pos[0];
+	Flt d1 = g.players[0].pos[1] - b.pos[1];
+	Flt dist = sqrt(d0*d0 + d1*d1);
+
+	if (dist <= g.players[0].w + b.w) {
+		// Player is colliding with a box
+		g.players[0].pos[0] = b.pos[0] + b.w + g.players[0].w;
+		g.players[0].pos[1] = b.pos[1] + b.h + g.players[0].h;
+		g.players[0].vel[1] = 0.0;
+	}
 
 	// Collision Detection for the boxes
-	//b.pos[0] += b.dir;
+	b.pos[0] += b.dir;
 
 	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
@@ -650,6 +667,7 @@ void render()
 			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
 		return;
 	}
 
@@ -665,6 +683,55 @@ void render()
 			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
+		return;
+	}
+
+	if (g.state == STATE_RESOLUTION) {
+		// Show the Resolution Selection screen
+		
+		glColor3ub(255, 255, 255); // Make it White
+
+		glBindTexture(GL_TEXTURE_2D, gl.screenid);
+		glBegin(GL_QUADS);
+			glTexCoord2f(0, 1); glVertex2i(0,       0);
+			glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
+			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
+			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
+		glEnd();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		
+		glPushMatrix();
+		glTranslatef(gl.xres/6, gl.yres/2, 0.0f);
+		
+		glColor3ub(255, 255, 0); // Make it Pink
+		glBegin(GL_LINE_LOOP);
+			glVertex2f(-gl.xres/12, -gl.yres/18);
+			glVertex2f(-gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12, -gl.yres/18);
+		glEnd();
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslatef(gl.xres/2, gl.yres/2, 0.0f);
+		glBegin(GL_LINE_LOOP);
+			glVertex2f(-gl.xres/12, -gl.yres/18);
+			glVertex2f(-gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12, -gl.yres/18);
+		glEnd();
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslatef(gl.xres/1.2, gl.yres/2, 0.0f);
+		glBegin(GL_LINE_LOOP);
+			glVertex2f(-gl.xres/12, -gl.yres/18);
+			glVertex2f(-gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12,  gl.yres/18);
+			glVertex2f( gl.xres/12, -gl.yres/18);
+		glEnd();
+
+		glPopMatrix();
 		return;
 	}
 
