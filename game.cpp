@@ -748,13 +748,11 @@ void physics()
 	if (g.players[0].pos[1] <= g.players[0].h) {
 		g.players[0].pos[1] = g.players[0].h;
 		g.players[0].vel[1] = 0.0;
-<<<<<<< HEAD
 		//g.lives -= 1;
-=======
-		g.lives -= 1;
 	}
-		b.pos[0] += b.dir;
-	}
+	
+	b.pos[0] += b.dir;
+	
 	// Collision with left side of screen
 	if (b.pos[0] >= (gl.xres-b.w)) {
 		b.pos[0] = (gl.xres-b.w);
@@ -788,11 +786,7 @@ void physics()
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
-<<<<<<< HEAD
 		g.score += 0.01;
-=======
-		g.score += 0.001;
->>>>>>> b47f6ab3ea056c70b1a26903c9642fcae79810c3
     }
 }
 
