@@ -475,7 +475,7 @@ int X11_wrapper::check_keys(XEvent *e)
 				if (g.state == STATE_PLAYER_SELECT) {
 					g.state = STATE_PLAY;
 					g.starttime = time(NULL);
-					g.playtime = 15;
+					g.playtime = 30;
 				}
 				break;
 			case XK_r:
