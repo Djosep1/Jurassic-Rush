@@ -111,10 +111,10 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		//xres = 640;
-		//yres = 480;
-		xres = 1200;
-		yres = 720;
+		xres = 640;
+		yres = 480;
+		//xres = 1200;
+		//yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.005f;
@@ -735,7 +735,10 @@ void physics()
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
 		g.players[0].pos[1] = boxTop + g.players[0].h;
         g.players[0].vel[1] = 0.0;
-		g.score += 0.001;
+		if (g.state == STATE_PLAY) {
+			g.score += 0.001;
+		}
+		
     }
 }
 
