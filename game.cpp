@@ -69,20 +69,20 @@ public:
 		}
 	}
 } 
-//   img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
-//   screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
-//   ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
-//   sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
-//   sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
-//   sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
-//   intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
-  img("pics/background.png"),
-  screen("pics/Resolution_Screen.png"),
-  ps("pics/Player_Screen.png"),
-  sprite_idle("sprites/boy/idle.png"),
-  sprite_run("sprites/boy/run.png"),
-  sprite_jump("sprites/boy/jump.png"),
-  intro("pics/Dungeon.png");
+  img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
+  screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
+  ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
+  sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
+  sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
+  sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
+  intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
+//   img("pics/background.png"),
+//   screen("pics/Resolution_Screen.png"),
+//   ps("pics/Player_Screen.png"),
+//   sprite_idle("sprites/boy/idle.png"),
+//   sprite_run("sprites/boy/run.png"),
+//   sprite_jump("sprites/boy/jump.png"),
+//   intro("pics/Dungeon.png");
 
 // Choose between a girl or boy player.
 Image player[2] = {"sprites/boy/run.png", "sprites/girl/run.png"};
