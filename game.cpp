@@ -141,13 +141,13 @@ public:
 	Flt mass;
 	Player() {
 		pos[0] = gl.xres/10;
-		pos[1] = gl.yres/2;
+		pos[1] = gl.yres;
 		vel[0] = 0.0f;
 		vel[1] = 0.0f;
 	}
 	void reset() {
 		pos[0] = gl.xres/10;
-		pos[1] = gl.yres/2;
+		pos[1] = gl.yres;
 		vel[0] = 0.0f;
 		vel[1] = 0.0f;
 	}
