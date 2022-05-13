@@ -126,7 +126,6 @@ public:
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.05f;
-		dir = 100.0f;
 		frameno = 0;
 		show = 0;
 	};
@@ -167,7 +166,7 @@ public:
 	Box() {
 		pos[0] = 0.0f;
 		pos[1] = gl.yres/4;
-		dir = 0.8f;
+		dir = 1.5f;
 	}
 	void reset() {
 		pos[0] = 0.0f; 
@@ -188,7 +187,7 @@ public:
 	Box2() {
 		pos[0] = gl.xres/1.1f;
 		pos[1] = gl.yres/2;
-		dir = 0.8f;
+		dir = 1.2f;
 	}
 	void reset() {
 		pos[0] = gl.xres/1.1f;
@@ -227,12 +226,12 @@ public:
 		Flt speedMult = 1.5;
 		if (gl.keys[XK_Left] || gl.keys[XK_a]) {
 			position = -1.0f;
-			players[0].pos[0] -= 1.0f * speedMult;
+			players[0].pos[0] -= 1.5f * speedMult;
 		}
 		// Move Right
 		if (gl.keys[XK_Right] || gl.keys[XK_d]) {
 			position = 0.0f;
-			players[0].pos[0] += 1.0f;
+			players[0].pos[0] += 1.5f * speedMult;
 		}
 		// Fixed Height Jump
 		if (gl.keys[XK_space] == 1) {
@@ -318,7 +317,6 @@ const double oobillion = 1.0 / 1e9;
 struct timespec ptimeStart, ptimeCurrent;
 double applyPhysicsCountdown = 0.0;
 double phystimeSpan = 0.0;
-
 
 void applyPhysics()
 {
@@ -539,8 +537,7 @@ int X11_wrapper::check_keys(XEvent *e)
 			// Controls for game
 			case XK_Return:
 				if (g.state == STATE_INTRO) {
-					g.state = STATE_PLAYER_SELECT;
-					//g.state = STATE_PLAY;
+					g.state = STATE_INSTRUCTIONS;
 				}
 				break;
 			case XK_1:
@@ -867,27 +864,42 @@ void render()
 		glEnd();
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		r.bot = gl.yres - 20;
-		r.left = 10;
-		r.center = 0;
-		ggprint8b(&r, 20, 0x00ffffff, "Press WASD or arrow keys to move");
-		ggprint8b(&r, 20, 0x00ffffff, "Press space to jump");
-		ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platform as long as possible");
+		// r.bot = gl.yres - 20;
+		// r.left = 10;
+		// r.center = 0;
+		// ggprint8b(&r, 20, 0x00ffffff, "Press AD or arrow keys to move");
+		// ggprint8b(&r, 20, 0x00ffffff, "Press space to jump");
+		// ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platforms as long as possible");
 		return;
 	}
 
-	if (g.state == STATE_PLAYER_SELECT) {
+	if (g.state == STATE_INSTRUCTIONS) {
 		// Show the Player Selection screen
-		glColor3ub(255, 255, 255); //Make it brighter
+		// glColor3ub(255, 255, 255); //Make it brighter
 
-		glBindTexture(GL_TEXTURE_2D, gl.psid);
-		glBegin(GL_QUADS);
-			glTexCoord2f(0, 1); glVertex2i(0,       0);
-			glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
-			glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
-			glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
-		glEnd();
-		glBindTexture(GL_TEXTURE_2D, 0);
+		// glBindTexture(GL_TEXTURE_2D, gl.psid);
+		// glBegin(GL_QUADS);
+		// 	glTexCoord2f(0, 1); glVertex2i(0,       0);
+		// 	glTexCoord2f(0, 0); glVertex2i(0,       gl.yres);
+		// 	glTexCoord2f(1, 0); glVertex2i(gl.xres, gl.yres);
+		// 	glTexCoord2f(1, 1); glVertex2i(gl.xres, 0);
+		// glEnd();
+		// glBindTexture(GL_TEXTURE_2D, 0);
+
+		glColor3ub(0, 0, 0); 
+
+		r.bot = gl.yres / 2;
+		r.left = gl.xres / 2;
+		r.center = 1;
+		ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platforms as long as possible");
+		ggprint8b(&r, 40, 0x00ffffff, "Press AD keys or arrow keys to move and space to jump");
+		ggprint8b(&r, 20, 0x00ffffff, "Press SPACE to start");
+		
+		if (gl.keys[XK_space] == 1) {
+			g.state = STATE_PLAY;
+			g.starttime = time(NULL);
+			g.playtime = 60;
+		}
 		return;
 	}
 
