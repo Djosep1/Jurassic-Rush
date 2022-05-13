@@ -68,21 +68,13 @@ public:
 			unlink(newfile);
 		}
 	}
-} 
-  img("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/background.png"),
-  screen("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Resolution_Screen.png"),
-  ps("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Player_Screen.png"),
-  sprite_idle("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/idle.png"),
-  sprite_run("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/run.png"),
-  sprite_jump("/home/stu/djosep/4490/proj/Jurassic-Rush/sprites/boy/jump.png"),
-  intro("/home/stu/djosep/4490/proj/Jurassic-Rush/pics/Dungeon.png");
-//   img("pics/background.png"),
-//   screen("pics/Resolution_Screen.png"),
-//   ps("pics/Player_Screen.png"),
-//   sprite_idle("sprites/boy/idle.png"),
-//   sprite_run("sprites/boy/run.png"),
-//   sprite_jump("sprites/boy/jump.png"),
-//   intro("pics/Dungeon.png");
+} 	img("pics/background.png"),
+	screen("pics/Resolution_Screen.png"),
+	ps("pics/Player_Screen.png"),
+	sprite_idle("sprites/boy/idle.png"),
+	sprite_run("sprites/boy/run.png"),
+	sprite_jump("sprites/boy/jump.png"),
+	intro("pics/Dungeon.png");
 
 // Choose between a girl or boy player.
 Image player[2] = {"sprites/boy/run.png", "sprites/girl/run.png"};
@@ -131,31 +123,6 @@ public:
 	};
 } gl;
 
-class Player {
-public:
-    Flt pos[2];
-    Flt vel[2];
-    float w, h;
-    unsigned int color;
-    bool alive_or_dead;
-	Flt mass;
-	Player() {
-		pos[0] = gl.xres/10;
-		pos[1] = gl.yres;
-		vel[0] = 0.0f;
-		vel[1] = 0.0f;
-	}
-	void reset() {
-		pos[0] = gl.xres/10;
-		pos[1] = gl.yres;
-		vel[0] = 0.0f;
-		vel[1] = 0.0f;
-	}
-	void set_dimensions(int x, int y) {
-		w = (float)x * 0.05;
-		h = w;
-	}
-};
 
 class Box {
 public:
@@ -198,6 +165,32 @@ public:
 		h = (float)y * 0.025f;
 	}
 } b2;
+
+class Player {
+public:
+    Flt pos[2];
+    Flt vel[2];
+    float w, h;
+    unsigned int color;
+    bool alive_or_dead;
+	Flt mass;
+	Player() {
+		pos[0] = gl.xres/10;
+		pos[1] = b.pos[1] + b.h;
+		vel[0] = 0.0f;
+		vel[1] = 0.0f;
+	}
+	void reset() {
+		pos[0] = gl.xres/10;
+		pos[1] = b.pos[1] + b.h;
+		vel[0] = 0.0f;
+		vel[1] = 0.0f;
+	}
+	void set_dimensions(int x, int y) {
+		w = (float)x * 0.05;
+		h = w;
+	}
+};
 
 class Game {
 public:
@@ -536,6 +529,11 @@ int X11_wrapper::check_keys(XEvent *e)
 		switch (key) {
 			// Controls for game
 			case XK_Return:
+				if (g.state == STATE_INSTRUCTIONS) {
+					g.state = STATE_PLAY;
+					g.starttime = time(NULL);
+					g.playtime = 60;
+				}
 				if (g.state == STATE_INTRO) {
 					g.state = STATE_INSTRUCTIONS;
 				}
@@ -562,13 +560,6 @@ int X11_wrapper::check_keys(XEvent *e)
 				// Show Resolution Screen
 				if (g.state == STATE_INTRO) {
 					g.state = STATE_RESOLUTION;
-				}
-				break;
-			case XK_space:
-				if (g.state == STATE_INSTRUCTIONS) {
-					g.state = STATE_PLAY;
-					g.starttime = time(NULL);
-					g.playtime = 60;
 				}
 				break;
 
@@ -900,7 +891,7 @@ void render()
 		r.center = 1;
 		ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platforms as long as possible");
 		ggprint8b(&r, 40, 0x00ffffff, "Press AD keys or arrow keys to move and space to jump");
-		ggprint8b(&r, 20, 0x00ffffff, "Press SPACE to start");
+		ggprint8b(&r, 20, 0x00ffffff, "Press ENTER to start");
 		return;
 	}
 
