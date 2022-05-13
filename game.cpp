@@ -119,10 +119,10 @@ public:
 	Global() {
 		memset(keys, 0, sizeof(keys));
 		// Odin
-		xres = 640;
-		yres = 480;
-		//xres = 1200;
-		//yres = 720;
+		//xres = 640;
+		//yres = 480;
+		xres = 1200;
+		yres = 720;
 		sxres = (double)xres;
 		syres = (double)yres;
 		gravity = 0.05f;
@@ -139,14 +139,12 @@ public:
     float w, h;
     unsigned int color;
     bool alive_or_dead;
-	float jump_height;
 	Flt mass;
 	Player() {
 		pos[0] = gl.xres/10;
 		pos[1] = gl.yres/2;
 		vel[0] = 0.0f;
 		vel[1] = 0.0f;
-		jump_height = vel[1];
 	}
 	void reset() {
 		pos[0] = gl.xres/10;
@@ -167,12 +165,12 @@ public:
 	float w, h;
 	float dir;
 	Box() {
-		pos[0] = 0.0f;	
+		pos[0] = 0.0f;
 		pos[1] = gl.yres/4;
-		dir = 0.2f;
+		dir = 0.8f;
 	}
 	void reset() {
-		pos[0] = 0.0f;	
+		pos[0] = 0.0f; 
 		pos[1] = gl.yres/4;
 	}
 	void set_dimensions(int x, int y) {
@@ -180,6 +178,27 @@ public:
 		h = (float)y * 0.025f;
 	}
 } b;
+
+class Box2 {
+public:
+	Flt pos[2];
+	Flt vel[2];
+	float w, h;
+	float dir;
+	Box2() {
+		pos[0] = gl.xres/1.1f;
+		pos[1] = gl.yres/2;
+		dir = 0.8f;
+	}
+	void reset() {
+		pos[0] = gl.xres/1.1f;
+		pos[1] = gl.yres/2;
+	}
+	void set_dimensions(int x, int y) {
+		w = (float)x * 0.10f;
+		h = (float)y * 0.025f;
+	}
+} b2;
 
 class Game {
 public:
@@ -191,14 +210,17 @@ public:
 	int playtime;
 	int countdown;
 	int starttime;
-	bool onPlatform = false;
 	float position;
+	bool isJumping;
+	bool onPlatform;
 	Game() {
 		// Initialize game state
 		state = STATE_INTRO;
 		score = 0;
 		lives = 1;
 		position = 0.0f;
+		isJumping = false;
+		onPlatform = false;
 	}
 	void movement_controls() {
 		// Move Left
@@ -212,21 +234,18 @@ public:
 			position = 0.0f;
 			players[0].pos[0] += 1.0f;
 		}
-		// Player Jump
+		// Fixed Height Jump
 		if (gl.keys[XK_space] == 1) {
-			if (players->jump_height > 0.5f) 
-				players[0].vel[1] -= 0.05f;
-			players[0].vel[1] += 1.0f;
-			onPlatform = false;
+			if (!isJumping && onPlatform) {
+				isJumping = true;
+				players[0].vel[1] += 6.0f;
+				if (players[0].vel[1] > 4.5f) {
+					players[0].vel[1] = 4.5f;
+				}
+			}
 		}
 		players[0].vel[1] -= gl.gravity;
         players[0].pos[1] += players[0].vel[1];
-	}
-	void move_up() {
-		players[0].pos[1] += 8.0;
-	}
-	void move_down() {
-		players[0].pos[1] -= 8.0;
 	}
 } g;
 
@@ -268,7 +287,7 @@ void *spriteThread(void *arg)
 		//If an amount of time has passed, change the frame number.
 		clock_gettime(CLOCK_REALTIME, &end);
 		diff = timeDiff(&start, &end);
-		if (gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) {
+		if ((gl.keys[XK_Left] || gl.keys[XK_a] || gl.keys[XK_Right] || gl.keys[XK_d]) && !g.isJumping) {
 			// How fast the frame changes
 			if (diff >= 0.2225) {
 				// Enough time has passed
@@ -279,10 +298,11 @@ void *spriteThread(void *arg)
 				}
 				timeCopy(&start, &end);
 			}
-		} else if (gl.keys[XK_space]) {
+		}
+		if (gl.keys[XK_space]) {
 			if (diff >= 0.2625) {
 				++gl.frameno;
-				if (gl.frameno > 10) {
+				if (gl.frameno > 1) {
 					gl.frameno = 1;
 				}
 				timeCopy(&start, &end);
@@ -445,6 +465,7 @@ void X11_wrapper::reshape_window(int width, int height)
 
 	g.players[0].set_dimensions(gl.xres, gl.yres);
 	b.set_dimensions(gl.xres, gl.yres);
+	b2.set_dimensions(gl.xres, gl.yres);
 }
 
 void X11_wrapper::check_resize(XEvent *e)
@@ -709,6 +730,7 @@ void init_opengl(void)
 	//Set the dimensions of the sprite and box
 	g.players[0].set_dimensions(gl.xres, gl.yres);
 	b.set_dimensions(gl.xres, gl.yres);
+	b2.set_dimensions(gl.xres, gl.yres);
 }
 
 void restartGame()
@@ -719,6 +741,7 @@ void restartGame()
 	g.state = STATE_INTRO;
 	g.players[0].reset();
 	b.reset();
+	b2.reset();
 }
 
 void physics()
@@ -727,7 +750,11 @@ void physics()
 		// Movement Controls
 		g.movement_controls();
 		b.pos[0] += b.dir;
+		b2.pos[0] -= b2.dir;
 	}
+
+	g.isJumping = false;
+	g.onPlatform = false;
 
     // Check the Players Boundaries
 	// Collision with right of screen
@@ -758,9 +785,20 @@ void physics()
 		b.dir = -b.dir;
 	}
 	// Collision with right side of screen
-	if (b.pos[0] <= b.w) {
-		b.pos[0] = b.w;
+	if (b.pos[0] <= 0-b.w) {
+		b.pos[0] = 0-b.w;
 		b.dir = -b.dir;
+	}
+
+	// Collision with right side of screen
+	if (b2.pos[0] >= (gl.xres+b2.w)) {
+		b2.pos[0] = (gl.xres+b2.w);
+		b2.dir = -b2.dir;
+	}
+	// Collision with left side of screen
+	if (b2.pos[0] <= 0-b2.w) {
+		b2.pos[0] = 0-b2.w;
+		b2.dir = -b2.dir;
 	}
 
 	// Get the hitbox sizes of the player and the box platform
@@ -768,6 +806,11 @@ void physics()
     Flt boxRight  = b.pos[0] + b.w;
     Flt boxTop    = b.pos[1] + b.h;
     Flt boxBottom = b.pos[1] - b.h;
+
+	Flt boxLeft2   = b2.pos[0] - b2.w;
+    Flt boxRight2  = b2.pos[0] + b2.w;
+    Flt boxTop2    = b2.pos[1] + b2.h;
+    Flt boxBottom2 = b2.pos[1] - b2.h;
 
     // Flt playerLeft   = g.players[0].pos[0] - g.players[0].w;
     // Flt playerRight  = g.players[0].pos[0] + g.players[0].w;
@@ -783,7 +826,22 @@ void physics()
 
 		// Centers the player on the platform and moves with it
 		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
+		g.onPlatform = true;
 		g.players[0].pos[1] = boxTop + g.players[0].h;
+        g.players[0].vel[1] = 0.0;
+		g.score += 0.01;
+    }
+
+	if (g.players[0].pos[0] >= boxLeft2 && g.players[0].pos[0] <= boxRight2 && playerBottom <= boxTop2 && playerTop >= boxBottom2) {
+		// if ((playerLeft <= boxLeft && playerRight >= boxLeft && playerTop >= boxTop) || 
+		// (playerLeft >= boxRight && playerRight <= boxRight && playerTop >= boxTop)) {
+		// if (playerLeft <= boxLeft && playerRight <= boxRight && playerTop >= boxTop) {
+		// g.players[0].pos[0] = boxLeft;
+
+		// Centers the player on the platform and moves with it
+		// g.players[0].pos[0] -= g.players[0].pos[0] - b.pos[0];
+		g.onPlatform = true;
+		g.players[0].pos[1] = boxTop2 + g.players[0].h;
         g.players[0].vel[1] = 0.0;
 		g.score += 0.01;
     }
@@ -814,7 +872,7 @@ void render()
 		r.center = 0;
 		ggprint8b(&r, 20, 0x00ffffff, "Press WASD or arrow keys to move");
 		ggprint8b(&r, 20, 0x00ffffff, "Press space to jump");
-		ggprint8b(&r, 20 , 0x00ffffff, "Goal is to stay on the platform as long as possible");
+		ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platform as long as possible");
 		return;
 	}
 
@@ -943,6 +1001,29 @@ void render()
 				glVertex2f(-b.w,  b.h);
 				glVertex2f( b.w,  b.h);
 				glVertex2f( b.w, -b.h);
+			glEnd();
+		}
+		glPopMatrix();
+
+		// Draw Box 2
+		glPushMatrix();
+		glColor3ub(225, 173, 1);
+		glTranslatef(b2.pos[0], b2.pos[1], 0.0f);
+		glBegin(GL_QUADS);
+			glVertex2f(-b2.w, -b2.h);
+			glVertex2f(-b2.w,  b2.h);
+			glVertex2f( b2.w,  b2.h);
+			glVertex2f( b2.w, -b2.h);
+		glEnd();
+
+		if (gl.show) {
+			// Check the bounding box for the box
+			glColor3ub(255, 255, 0); // Make it Yellow
+			glBegin(GL_LINE_LOOP);
+				glVertex2f(-b2.w, -b2.h);
+				glVertex2f(-b2.w,  b2.h);
+				glVertex2f( b2.w,  b2.h);
+				glVertex2f( b2.w, -b2.h);
 			glEnd();
 		}
 		glPopMatrix();
