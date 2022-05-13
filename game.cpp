@@ -187,7 +187,7 @@ public:
 	Box2() {
 		pos[0] = gl.xres/1.1f;
 		pos[1] = gl.yres/2;
-		dir = 1.2f;
+		dir = 1.5f;
 	}
 	void reset() {
 		pos[0] = gl.xres/1.1f;
@@ -776,12 +776,12 @@ void physics()
 		//g.lives -= 1;
 	}
 	
-	// Collision with left side of screen
-	if (b.pos[0] >= (gl.xres-b.w)) {
-		b.pos[0] = (gl.xres-b.w);
+	// Collision with right side of screen
+	if (b.pos[0] >= (gl.xres+b.w)) {
+		b.pos[0] = (gl.xres+b.w);
 		b.dir = -b.dir;
 	}
-	// Collision with right side of screen
+	// Collision with left side of screen
 	if (b.pos[0] <= 0-b.w) {
 		b.pos[0] = 0-b.w;
 		b.dir = -b.dir;
