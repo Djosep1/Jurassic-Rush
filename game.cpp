@@ -166,7 +166,7 @@ public:
 	Box() {
 		pos[0] = 0.0f;
 		pos[1] = gl.yres/4;
-		dir = 1.5f;
+		dir = 2.0f;
 	}
 	void reset() {
 		pos[0] = 0.0f; 
@@ -187,7 +187,7 @@ public:
 	Box2() {
 		pos[0] = gl.xres/1.1f;
 		pos[1] = gl.yres/2;
-		dir = 1.5f;
+		dir = 1.0f;
 	}
 	void reset() {
 		pos[0] = gl.xres/1.1f;
@@ -564,6 +564,13 @@ int X11_wrapper::check_keys(XEvent *e)
 					g.state = STATE_RESOLUTION;
 				}
 				break;
+			case XK_space:
+				if (g.state == STATE_INSTRUCTIONS) {
+					g.state = STATE_PLAY;
+					g.starttime = time(NULL);
+					g.playtime = 60;
+				}
+				break;
 
 			// Controls to quit game
 			case XK_q:
@@ -894,12 +901,6 @@ void render()
 		ggprint8b(&r, 20, 0x00ffffff, "Goal is to stay on the platforms as long as possible");
 		ggprint8b(&r, 40, 0x00ffffff, "Press AD keys or arrow keys to move and space to jump");
 		ggprint8b(&r, 20, 0x00ffffff, "Press SPACE to start");
-		
-		if (gl.keys[XK_space] == 1) {
-			g.state = STATE_PLAY;
-			g.starttime = time(NULL);
-			g.playtime = 60;
-		}
 		return;
 	}
 
